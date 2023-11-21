@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <div class="container-md my-2">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <h3>How To Use</h3>
+                <ol class="list-unstyled">
+                    <li>Enter the path to the directory containing all the .csv CLAMS data files you wish to process.</li>
+                    <li>Enter the number of hours you wish to trim from the beginning of the data and the light cycle to start in. Somewhere between 1-6 hours for most runs, or 0 if a very short run.</li>
+                    <li>Enter the number of hours you wish to retain after trimming to be used for analysis.</li>
+                    <li>Enter the size of the bin in hours. Must be a factor of 12. (e.g. 1, 2, 3, 4, 6, 12)</li>
+                    <li>Click “Start Processing”.</li>
+                    <li>Congratulations! You saved hours of menial labor! :D</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-md my-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div id="file-droppable" class="drag-drop-area">
+                    <form class="my-form">
+                        <p>Upload multiple .csv files with the file dialog or by dragging and dropping them onto the area below</p>
+                        <input type="file" id="fileElem" multiple accept=".csv" onchange="handleFiles(this.files)">
+                        <label class="button" for="fileElem">Select some files</label>
+                    </form>
+                    <div id="gallery"></div>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" class="text-center dropzone">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let dropArea = document.getElementById('file-droppable')
+
+    ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false)
+    })
+
+    function preventDefaults (e) {
+        e.preventDefault()
+        e.stopPropagation()
+    }
+
+    ;['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false)
+    })
+
+    ;['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false)
+    })
+
+    function highlight(e) {
+        dropArea.classList.add('highlight')
+    }
+
+    function unhighlight(e) {
+        dropArea.classList.remove('highlight')
+    }
+
+    dropArea.addEventListener('drop', handleDrop, false)
+
+    function handleDrop(e) {
+        let dt = e.dataTransfer
+        let files = dt.files
+
+        handleFiles(files)
+    }
+
+    function handleFiles(files) {
+        ([...files]).forEach(uploadFile)
+    }
+
+    function uploadFile(file) {
+        let url = '{% url "upload_csv_files" %}'
+        let formData = new FormData()
+        formData.append('file', file)
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'), // Function to get CSRF token from cookies
+            },
+        })
+        .then(response => response.json())
+        .then(data => console.log(data))
+        .catch(error => console.error(error))
+    }
+
+</script>
+
+
+{% endblock content %}
+
+</html>

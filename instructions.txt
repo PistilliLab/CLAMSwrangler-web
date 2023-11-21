@@ -1,0 +1,14 @@
+1. Enter the path to the directory containing all the .csv CLAMS data files you wish to process.
+2. Enter the number of hours you wish to trim from the beginning of the data and the light cycle to start in.
+        Somewhere between 1-6 hours for most runs, or 0 if a very short run.
+3. Enter the number of hours you wish to retain after trimming to be used for analysis.
+4. Enter the size of the bin in hours.
+        Must be a factor of 12. (e.g. 1, 2, 3, 4, 6, 12)
+5. Select a config file that contains an ID and GROUP LABEL columns for your data. Clicking the Browse button will generate one for you, or you can select an existing one. Alternatively, you can manually enter the ID and GROUP LABEL using the input fields. Refer to the documentation for more help.
+6. Click “Start Processing”.
+
+Congratulations! You saved hours of menial labor! :D
+
+For more assistance on using CLAMS Wrangler please visit the wiki at https://github.com/PistilliLab/CLAMSwrangler/wiki
+
+To report a bug or request a feature please open an issue at https://github.com/PistilliLab/CLAMSwrangler/issues

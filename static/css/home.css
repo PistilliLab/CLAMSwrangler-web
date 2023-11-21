@@ -1,0 +1,12 @@
+.drag-drop-area {
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.drag-drop-area.highlight {
+    border-color: blue;
+}
