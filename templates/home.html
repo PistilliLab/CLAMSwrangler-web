@@ -24,13 +24,17 @@
     <div class="container-md my-4">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div id="file-droppable" class="drag-drop-area">
+                <div id="file-droppable" class="drag-drop-area" onclick="document.getElementById('fileElem').click();">
                     <form class="my-form">
-                        <p>Upload multiple .csv files with the file dialog or by dragging and dropping them onto the area below</p>
-                        <input type="file" id="fileElem" multiple accept=".csv" onchange="handleFiles(this.files)">
-                        <label class="button" for="fileElem">Select some files</label>
+                        <p>Upload multiple .csv files from CLAMS.</p>
+                        <p>Click or drag-and-drop to select files.</p>
+                        <input type="file" id="fileElem" multiple accept=".csv" onchange="handleFiles(this.files)" style="display: none;">
+                        <label class="button" for="fileElem"></label>
+                        <div id="gallery"></div>
                     </form>
-                    <div id="gallery"></div>
+                    <div id="file-list"></div>
+                    <button type="button" onclick="clearFiles(event)">Clear Files</button>
+                    <button type="button" onclick="uploadFiles(event)">Upload Files</button>
                 </div>
 
                 <form method="post" enctype="multipart/form-data" class="text-center dropzone">
@@ -44,6 +48,7 @@
 
 <script>
     let dropArea = document.getElementById('file-droppable')
+    let fileArray = []; // Array to store files to upload
 
     ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, preventDefaults, false)
@@ -72,6 +77,10 @@
 
     dropArea.addEventListener('drop', handleDrop, false)
 
+    function triggerFileInputClick() {
+        document.getElementById('fileElem').click();
+    }
+
     function handleDrop(e) {
         let dt = e.dataTransfer
         let files = dt.files
@@ -80,7 +89,28 @@
     }
 
     function handleFiles(files) {
-        ([...files]).forEach(uploadFile)
+        fileArray = [...files];
+        displayFiles();
+    }
+
+    function clearFiles(e) {
+        e.stopPropagation();
+        fileArray = []; // Clear file array
+        displayFiles(); // Update UI
+        document.getElementById('fileElem').value = ""; // Reset file input
+    }
+
+    function uploadFiles(e) {
+        e.stopPropagation();
+        fileArray.forEach(file => {
+            uploadFile(file);
+        });
+    }
+
+    function displayFiles() {
+        // Display list of files to be uploaded
+        let fileNames = fileArray.map(file => file.name).join(', ');
+        document.getElementById('file-list').textContent = fileNames;
     }
 
     function uploadFile(file) {

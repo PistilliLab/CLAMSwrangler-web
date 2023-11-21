@@ -1,3 +1,6 @@
+import os
+import uuid
+from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.shortcuts import render, redirect
 from django.http import Http404, JsonResponse
@@ -31,7 +34,20 @@ def homepage_view(request):
 
 def upload_csv_files(request):
     if request.method == 'POST':
-        file = request.FILES.get('file')
+        # Generate unique ID for each upload session
+        upload_id = uuid.uuid4()
+        upload_dir = os.path.join(settings.MEDIA_ROOT, str(upload_id))
+
+        # Create directory for upload session
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Upload all files
+        for file in request.FILES.getlist('file'):
+            file_path = os.path.join(upload_dir, file.name)
+            with open(file_path, 'wb+') as destination:
+                for chunk in file.chunks():
+                    destination.write(chunk)
+
         # Save the file, process it, etc...
 
         return JsonResponse({'message': 'File uploaded successfully'})
