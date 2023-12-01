@@ -7,7 +7,7 @@ from django.http import Http404, JsonResponse
 from .forms import UserInputForm
 from clams_processing import clean_all_clams_data, trim_all_clams_data, process_directory, recombine_columns, \
     reformat_csvs_in_directory
-from helpers import get_latest_version
+from helpers import get_latest_version, initialize_experiment_config_file
 
 
 def homepage_view(request):
@@ -19,10 +19,17 @@ def homepage_view(request):
             trim_hours = form.cleaned_data['trim_hours']
             keep_hours = form.cleaned_data['keep_hours']
             bin_hours = form.cleaned_data['bin_hours']
-            files = request.FILES.getlist('file_input')
 
-            # Call your processing function
-            # processed_files = your_processing_function(files, text, number)
+            # Access the upload_dir session variable
+            upload_dir = request.session.get('upload_dir', None)
+            print(upload_dir)
+            if upload_dir:
+                experiment_config_file = os.path.join(settings.MEDIA_ROOT, 'config/config.csv')
+                clean_all_clams_data(upload_dir)
+                trim_all_clams_data(upload_dir, trim_hours, keep_hours, "Start Dark")
+                process_directory(upload_dir, bin_hours)
+                recombine_columns(upload_dir, experiment_config_file)
+                reformat_csvs_in_directory(upload_dir)
 
             # Code to return processed files back to user
 
@@ -50,8 +57,8 @@ def upload_csv_files(request):
                 for chunk in file.chunks():
                     destination.write(chunk)
 
-        # Save the file, process it, etc...
-
+        # If file upload successful, assign upload_dir to session variable
+        request.session['upload_dir'] = upload_dir
 
         return JsonResponse({'message': 'File uploaded successfully', 'upload_id': upload_id})
 

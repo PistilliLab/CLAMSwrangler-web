@@ -312,8 +312,9 @@ def recombine_columns(directory_path, experiment_config_file):
         variable_data = combined_data[['ID', 'GROUP LABEL', 'DAY', 'HOUR', '24 HOUR', variable]]
         variable_data.to_csv(output_filename, index=False)
 
-# Function to reformat a single CSV file
+
 def reformat_csv(input_csv_path, output_csv_path):
+    """Reformat a CLAMS CSV file to a "tidy" format."""
     df = pd.read_csv(input_csv_path)
 
     # Replace missing values in "GROUP LABEL" with a placeholder value
