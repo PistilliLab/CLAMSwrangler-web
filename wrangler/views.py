@@ -1,5 +1,6 @@
 import os
 import uuid
+import pandas as pd
 from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.shortcuts import render, redirect
@@ -24,12 +25,35 @@ def homepage_view(request):
             upload_dir = request.session.get('upload_dir', None)
             print(upload_dir)
             if upload_dir:
-                experiment_config_file = os.path.join(settings.MEDIA_ROOT, 'config/config.csv')
+                experiment_config_path = os.path.join(settings.MEDIA_ROOT, 'config')
+                experiment_config_file = os.path.join(experiment_config_path, 'config.csv')
+
+                # Check if the experiment configuration file exists
+                if not os.path.exists(experiment_config_file):
+                    # Initialize a new experiment configuration file
+                    initialize_experiment_config_file(experiment_config_path)
+
+                    # Check if the user provided a config file to be copied
+                    # selected_config_file = config_file_entry.get()
+                    if os.path.exists(experiment_config_file):
+                        try:
+                            # Read the selected config file
+                            config_df = pd.read_csv(experiment_config_file)
+                            print(config_df.columns)
+                            expected_columns = ["ID", "GROUP_LABEL"]
+                            if all(col in config_df.columns for col in expected_columns):
+                                # Copy the selected config file to the new experiment configuration file
+                                config_file_dest = os.path.join(experiment_config_path, 'config.csv')
+                                config_df.to_csv(config_file_dest, index=False, columns=expected_columns)
+                        except (pd.errors.EmptyDataError, pd.errors.ParserError, ValueError) as e:
+                            # Handle errors while reading/copying the selected config file
+                            print(f"Error copying config file: {str(e)}\n")
+
                 clean_all_clams_data(upload_dir)
                 trim_all_clams_data(upload_dir, trim_hours, keep_hours, "Start Dark")
                 process_directory(upload_dir, bin_hours)
                 recombine_columns(upload_dir, experiment_config_file)
-                reformat_csvs_in_directory(upload_dir)
+                reformat_csvs_in_directory(os.path.join(upload_dir, 'Combined_CLAMS_data'))
 
             # Code to return processed files back to user
 

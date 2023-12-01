@@ -29,4 +29,4 @@ def initialize_experiment_config_file(directory_path):
     config_file = os.path.join(config_file_path, 'experiment_config.csv')
 
     with open(config_file, 'w') as file:
-        file.write("ID,GROUP LABEL\n")
+        file.write("ID,GROUP_LABEL\n")

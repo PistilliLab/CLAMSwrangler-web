@@ -268,10 +268,11 @@ def recombine_columns(directory_path, experiment_config_file):
     output_variables = ['ACCCO2', 'ACCO2', 'FEED1 ACC', 'FEED1', 'RER', 'AMB', 'AMB ACC', 'VCO2', 'VO2', 'WHEEL ACC', 'WHEEL']
 
     # Define columns to include in the output
-    selected_columns = ['ID', 'GROUP LABEL', 'DAY', 'HOUR', '24 HOUR'] + output_variables
+    selected_columns = ['ID', 'GROUP_LABEL', 'DAY', 'HOUR', '24 HOUR'] + output_variables
 
     # Read the experiment configuration
     config_df = pd.read_csv(experiment_config_file)
+    print(f'CONFIGRESULTS: {config_df.columns}')
 
     # Create an empty DataFrame to store the combined data
     combined_data = pd.DataFrame(columns=selected_columns)
@@ -286,8 +287,8 @@ def recombine_columns(directory_path, experiment_config_file):
             # Get the 'ID' number from the file name
             file_id = extract_id_number(filename)
 
-            # Find the GROUP LABEL for the current ID
-            group_label = config_df[config_df['ID'] == int(file_id)]['GROUP LABEL'].values
+            # Find the GROUP_LABEL for the current ID
+            group_label = config_df[config_df['ID'] == int(file_id)]['GROUP_LABEL'].values
             if len(group_label) > 0:
                 group_label = group_label[0]
             else:
@@ -295,7 +296,7 @@ def recombine_columns(directory_path, experiment_config_file):
 
             # Add columns 'ID', 'DAY', 'HOUR', '24 HOUR'
             df['ID'] = file_id
-            df['GROUP LABEL'] = group_label
+            df['GROUP_LABEL'] = group_label
             df['DAY'] = df['DAY'].astype(int)
             df['HOUR'] = df['HOUR'].astype(int)
             df['24 HOUR'] = df['24 HOUR'].astype(int)
@@ -309,7 +310,7 @@ def recombine_columns(directory_path, experiment_config_file):
     # Group the combined data by the output variables and save to separate .csv files
     for variable in output_variables:
         output_filename = os.path.join(combined_directory, f"{variable}.csv")
-        variable_data = combined_data[['ID', 'GROUP LABEL', 'DAY', 'HOUR', '24 HOUR', variable]]
+        variable_data = combined_data[['ID', 'GROUP_LABEL', 'DAY', 'HOUR', '24 HOUR', variable]]
         variable_data.to_csv(output_filename, index=False)
 
 
@@ -317,19 +318,19 @@ def reformat_csv(input_csv_path, output_csv_path):
     """Reformat a CLAMS CSV file to a "tidy" format."""
     df = pd.read_csv(input_csv_path)
 
-    # Replace missing values in "GROUP LABEL" with a placeholder value
-    df["GROUP LABEL"].fillna("NO_LABEL", inplace=True)
+    # Replace missing values in "GROUP_LABEL" with a placeholder value
+    df["GROUP_LABEL"].fillna("NO_LABEL", inplace=True)
 
     # Extract the name of the last column
     last_column_name = df.columns[-1]
 
-    # Pivot the table using "ID", "GROUP LABEL", "DAY", and "24 HOUR" as indices
-    pivot_table = df.pivot_table(index=["ID", "GROUP LABEL", "DAY"],
+    # Pivot the table using "ID", "GROUP_LABEL", "DAY", and "24 HOUR" as indices
+    pivot_table = df.pivot_table(index=["ID", "GROUP_LABEL", "DAY"],
                                  columns="24 HOUR", values=last_column_name,
                                  aggfunc="first").reset_index()
 
     # Flatten the column index and rename columns
-    pivot_table.columns = ["ID", "GROUP LABEL", "DAY"] + [f"{last_column_name}_{hour}" for hour in
+    pivot_table.columns = ["ID", "GROUP_LABEL", "DAY"] + [f"{last_column_name}_{hour}" for hour in
                                                           pivot_table.columns[3:]]
 
     # Save the pivot table to a new CSV file
