@@ -54,6 +54,22 @@
         dropArea.addEventListener(eventName, preventDefaults, false)
     })
 
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Identify CSRF token cookie
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
     function preventDefaults (e) {
         e.preventDefault()
         e.stopPropagation()
@@ -94,17 +110,12 @@
     }
 
     function clearFiles(e) {
-        e.stopPropagation();
+        if (e) {
+            e.stopPropagation();
+        }
         fileArray = []; // Clear file array
         displayFiles(); // Update UI
         document.getElementById('fileElem').value = ""; // Reset file input
-    }
-
-    function uploadFiles(e) {
-        e.stopPropagation();
-        fileArray.forEach(file => {
-            uploadFile(file);
-        });
     }
 
     function displayFiles() {
@@ -113,22 +124,35 @@
         document.getElementById('file-list').textContent = fileNames;
     }
 
-    function uploadFile(file) {
-        let url = '{% url "upload_csv_files" %}'
-        let formData = new FormData()
-        formData.append('file', file)
+    function uploadFiles(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();} // Prevent the default form submission and event bubbling
 
+        let url = '{% url "upload_csv_files" %}';
+        let formData = new FormData();
+
+        // Append all files to the same FormData object
+        fileArray.forEach(file => {
+            formData.append('file', file);
+        });
+
+        // Make a single fetch request to upload all files
         fetch(url, {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'), // Function to get CSRF token from cookies
+                'X-CSRFToken': getCookie('csrftoken'), // Include CSRF token
             },
         })
         .then(response => response.json())
-        .then(data => console.log(data))
-        .catch(error => console.error(error))
+        .then(data => {
+            console.log(data); // Log the response for each request
+            clearFiles(); // Optionally clear files after upload
+        })
+        .catch(error => console.error(error));
     }
+
 
 </script>
 
