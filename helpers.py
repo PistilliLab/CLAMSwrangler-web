@@ -1,4 +1,5 @@
 import os
+import zipfile
 import requests
 
 
@@ -30,3 +31,10 @@ def initialize_experiment_config_file(directory_path):
 
     with open(config_file, 'w') as file:
         file.write("ID,GROUP_LABEL\n")
+
+
+def zip_directory(folder_path, output_path):
+    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(folder_path, '..')))

@@ -41,6 +41,7 @@
                     {% csrf_token %}
                     {{ form.as_p }}
                     <button type="submit" class="btn btn-primary">Submit</button>
+                    <a href="#" id="downloadLink" class="btn btn-secondary disabled" tabindex="-1" aria-disabled="true">Download Zip</a>
                 </form>
             </div>
         </div>
@@ -148,9 +149,39 @@
         .then(response => response.json())
         .then(data => {
             console.log(data); // Log the response for each request
+            if (data.upload_id) {
+                // Update download link with the received upload_id
+                let downloadLink = document.getElementById('downloadLink');
+                downloadLink.href = `/download/${data.upload_id}/`; // Construct the download URL
+                downloadLink.classList.remove('disabled');
+                downloadLink.setAttribute('aria-disabled', 'false');
+            }
             clearFiles(); // Optionally clear files after upload
+            // Start checking for zip file availability, using the uploadId returned from the server
+            checkZipFile(data.upload_id);
         })
         .catch(error => console.error(error));
+    }
+
+    function checkZipFile(upload_id) {
+        let url = `/check-zip/${upload_id}/`; // URL to endpoint that checks for zip file existence
+
+        fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if(data.exists) {
+                // Enable download link if zip file exists
+                let downloadLink = document.getElementById('downloadLink');
+                downloadLink.classList.remove('disabled');
+                downloadLink.setAttribute('href', `/download/${upload_id}/`);
+                downloadLink.setAttribute('aria-disabled', 'false');
+                downloadLink.textContent = 'Download Zip'; // Update button text if needed
+            } else {
+                // Optionally, re-check after some time
+                setTimeout(() => checkZipFile(upload_id), 5000); // Check every 5 seconds
+            }
+        })
+        .catch(error => console.error('Error:', error));
     }
 
 

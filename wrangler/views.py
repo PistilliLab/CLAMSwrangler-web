@@ -4,11 +4,12 @@ import pandas as pd
 from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.shortcuts import render, redirect
-from django.http import Http404, JsonResponse
+from django.http import Http404, JsonResponse, HttpResponse
+from wsgiref.util import FileWrapper
 from .forms import UserInputForm
 from clams_processing import clean_all_clams_data, trim_all_clams_data, process_directory, recombine_columns, \
     reformat_csvs_in_directory
-from helpers import get_latest_version, initialize_experiment_config_file
+from helpers import get_latest_version, initialize_experiment_config_file, zip_directory
 
 
 def homepage_view(request):
@@ -55,7 +56,8 @@ def homepage_view(request):
                 recombine_columns(upload_dir, experiment_config_file)
                 reformat_csvs_in_directory(os.path.join(upload_dir, 'Combined_CLAMS_data'))
 
-            # Code to return processed files back to user
+            # Zip the processed files and return
+            zip_directory(upload_dir, os.path.join(settings.MEDIA_ROOT, f'{upload_dir}.zip'))
 
     else:
         form = UserInputForm()
@@ -67,9 +69,9 @@ def upload_csv_files(request):
     if request.method == 'POST':
         # Generate unique ID for each upload session
         upload_id = str(uuid.uuid4())
-        upload_dir = os.path.join(settings.MEDIA_ROOT, upload_id)
+        request.session['upload_id'] = upload_id  # Store it in the session early
 
-        # Create directory for upload session
+        upload_dir = os.path.join(settings.MEDIA_ROOT, upload_id)
         os.makedirs(upload_dir, exist_ok=True)
 
         # Iterate through the files received in the POST request
@@ -88,3 +90,18 @@ def upload_csv_files(request):
 
     else:
         return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+
+
+def download_zip(request, upload_id):
+    file_path = os.path.join(settings.MEDIA_ROOT, f'{upload_id}.zip')
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as fh:
+            response = HttpResponse(FileWrapper(fh), content_type='application/zip')
+            response['Content-Disposition'] = f'attachment; filename={os.path.basename(file_path)}'
+            return response
+    raise Http404
+
+
+def check_zip_exists(request, upload_id):
+    file_path = os.path.join(settings.MEDIA_ROOT, f'{upload_id}.zip')
+    return JsonResponse({'exists': os.path.exists(file_path)})
