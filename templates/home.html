@@ -8,15 +8,10 @@
     <div class="container-md my-2">
         <div class="row justify-content-center">
             <div class="col-md-8 text-center">
-                <h3>How To Use</h3>
+                <h3>Welcome!</h3>
                 <ol class="list-unstyled">
-                    <li>Download the experimental configuration file template and define your subject IDs and corresponding group label. Upload the completed file.</li>
-                    <li>Select all of the .csv raw CLAMS data files that you wish to process and click upload.</li>
-                    <li>Enter the number of hours you wish to trim from the beginning of the data and the light cycle to start in. Somewhere between 1-6 hours for most runs, or 0 if a very short run.</li>
-                    <li>Enter the number of hours you wish to retain after trimming to be used for analysis.</li>
-                    <li>Enter the size of the bin in hours. Must be a factor of 12. (e.g. 1, 2, 3, 4, 6, 12)</li>
-                    <li>Click “Start Processing”.</li>
-                    <li>Congratulations! You saved hours of menial labor! :D</li>
+                    <li>To get started, simply follow the steps outlined below to process your Oxymax-CLAMS data files.</li>
+                    <li>If you would like to read more about what data you need or how the data is processed, refer to the <a href="#">documentation.</a></li>
                 </ol>
             </div>
         </div>
@@ -27,6 +22,9 @@
     <h3>1.) Experimental configuration file</h3>
     <!-- button to download the experimental configuration file template -->
     <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'download_config_template' %}'">Download Config Template</button>
+    <p></p>
+    <p>Download the configuration file template from above. The file contains two columns: <b>ID</b> and <b>GROUP_LABEL</b>.</p>
+    <p>For each row, enter a subject ID and their corresponding group label. E.g. 1001, Control; 1005, Treated.</p>
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div id="file-droppable1" class="drag-drop-area" onclick="document.getElementById('fileElem1').click();">
@@ -47,6 +45,7 @@
     <!-- CLAMS Data File form-->
     <div class="container-md my-4">
     <h3>2.) Upload CLAMS data files.</h3>
+    <p>The CLAMS files must be in the exported .csv format, not the original format as this software is not designed to handle them.</p>
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div id="file-droppable2" class="drag-drop-area" onclick="document.getElementById('fileElem2').click();">
@@ -67,6 +66,14 @@
     <!-- Processing form-->
     <div class="container-md my-4">
     <h3>3.) Specify processing settings.</h3>
+    <p>Data can be processed with a range of settings to allow for the most flexibility in downstream analyses.</p>
+    <p>For more information on the settings, refer to the <a href="#">documentation.</a></p>
+    <ol>
+        <li>Trim hours: the number of hours to trim from the beginning of the data.</li>
+        <li>Keep hours: the number of hours to keep (e.g., 96 hours of data). This value should not exceed the duration of your shortest data collection window.</li>
+        <li>Bin hours: how the data will be averaged into bins. For example, data can be averaged hourly for each animal or for a 24 hour period.</li>
+        <li>Start cycle: define whether you want the data cleaning to start at the light or dark cycle of the CLAMS experiment.</li>
+    </ol>    
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <form id="uploadForm" method="post" enctype="multipart/form-data" class="text-center dropzone">
@@ -80,6 +87,7 @@
         </div>
     </div>
 
+<!-- JavaScript -->    
 <script>
     let dropArea = document.getElementById('file-droppable')
     let fileArray = []; // Array to store files to upload
@@ -138,63 +146,62 @@
         handleFiles(files)
     }
 
-    function handleFiles(files) {
-        fileArray = [...files];
-        displayFiles();
+    function handleFiles(files, idSuffix) {
+        let fileArray = [...files];
+        displayFiles(fileArray, idSuffix);
     }
 
-    function clearFiles(e) {
+    function clearFiles(e, idSuffix) {
         if (e) {
             e.stopPropagation();
         }
-        fileArray = []; // Clear file array
-        displayFiles(); // Update UI
-        document.getElementById('fileElem').value = ""; // Reset file input
+        document.getElementById('fileElem' + idSuffix).value = ""; // Reset the file input
+        displayFiles([], idSuffix); // Clear display
     }
 
-    function displayFiles() {
+    function displayFiles(fileArray, idSuffix) {
         // Display list of files to be uploaded
         let fileNames = fileArray.map(file => file.name).join(', ');
-        document.getElementById('file-list').textContent = fileNames;
+        document.getElementById('file-list' + idSuffix).textContent = fileNames;
     }
 
-    function uploadFiles(e) {
+    function uploadFiles(e, idSuffix) {
         if (e) {
             e.preventDefault();
-            e.stopPropagation();} // Prevent the default form submission and event bubbling
-
+            e.stopPropagation();
+        }
+    
         let url = '{% url "upload_csv_files" %}';
         let formData = new FormData();
-
-        // Append all files to the same FormData object
-        fileArray.forEach(file => {
+    
+        // You need to fetch files from the specific input element
+        let files = document.getElementById('fileElem' + idSuffix).files;
+        [...files].forEach(file => {
             formData.append('file', file);
         });
-
-        // Make a single fetch request to upload all files
+    
         fetch(url, {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRFToken': getCookie('csrftoken'), // Include CSRF token
+                'X-CSRFToken': getCookie('csrftoken'),
             },
         })
         .then(response => response.json())
         .then(data => {
-            console.log(data); // Log the response for each request
             if (data.upload_id) {
-                // Update download link with the received upload_id
-                let downloadLink = document.getElementById('downloadLink');
-                downloadLink.href = `/download/${data.upload_id}/`; // Construct the download URL
-                downloadLink.classList.remove('disabled');
-                downloadLink.setAttribute('aria-disabled', 'false');
+                {#let downloadLink = document.getElementById('downloadLink' + idSuffix);#}
+                {#downloadLink.href = `/download/${data.upload_id}/`;#}
+                {#downloadLink.classList.remove('disabled');#}
+                {#downloadLink.setAttribute('aria-disabled', 'false');#}
+                // Start checking for zip file availability, using the uploadId returned from the server
+                checkZipFile(data.upload_id);
             }
-            clearFiles(); // Optionally clear files after upload
-            // Start checking for zip file availability, using the uploadId returned from the server
-            checkZipFile(data.upload_id);
+            clearFiles(null, idSuffix); // Optionally clear files after upload
         })
         .catch(error => console.error(error));
     }
+
 
     function checkZipFile(upload_id) {
         let url = `/check-zip/${upload_id}/`; // URL to endpoint that checks for zip file existence

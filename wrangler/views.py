@@ -17,12 +17,6 @@ def homepage_view(request):
     if request.method == 'POST':
         form = UserInputForm(request.POST, request.FILES)
         if form.is_valid():
-            subject_ids = request.POST.getlist('subject_id[]')
-            group_labels = request.POST.getlist('group_label[]')
-
-            # Create a list of dictionaries for each subject and their group
-            subject_data = [{'id': sid, 'group': grp} for sid, grp in zip(subject_ids, group_labels)]
-            request.session['subject_data'] = subject_data  # Save to session
 
             # Process the form data
             trim_hours = form.cleaned_data['trim_hours']
@@ -75,25 +69,40 @@ def homepage_view(request):
 
 
 def upload_csv_files(request):
+    """
+    Uploads the files to the server and stores them in the session.
+
+    Args:
+        request:
+
+    Returns: upload_id and message if the file is uploaded successfully.
+
+    """
     if request.method == 'POST':
-        # Generate unique ID for each upload session
-        upload_id = str(uuid.uuid4())
-        request.session['upload_id'] = upload_id  # Store it in the session early
+        # Check if the session already has an upload directory
+        upload_id = request.session.get('upload_id')
+        if not upload_id:
+            # Generate unique ID for new upload session
+            upload_id = str(uuid.uuid4())
+            request.session['upload_id'] = upload_id  # Store it in the session
 
-        upload_dir = os.path.join(settings.MEDIA_ROOT, upload_id)
-        os.makedirs(upload_dir, exist_ok=True)
+            # Create directory for this session
+            upload_dir = os.path.join(settings.MEDIA_ROOT, upload_id)
+            os.makedirs(upload_dir, exist_ok=True)
+            request.session['upload_dir'] = upload_dir  # Store directory path in session
+        else:
+            # Use existing directory if session already started
+            upload_dir = request.session.get('upload_dir', '')
 
-        # Iterate through the files received in the POST request
+        # Save files uploaded in this request
         files = request.FILES.getlist('file')
         for file in files:
-            # Save each file to the unique directory
             file_path = os.path.join(upload_dir, file.name)
             with open(file_path, 'wb+') as destination:
                 for chunk in file.chunks():
                     destination.write(chunk)
 
-        # If file upload successful, assign upload_dir to session variable
-        request.session['upload_dir'] = upload_dir
+        request.session['upload_dir'] = upload_dir  # Store directory path in session
 
         return JsonResponse({'message': 'File uploaded successfully', 'upload_id': upload_id})
 
