@@ -14,8 +14,10 @@ class UserInputForm(forms.Form):
     trim_hours = forms.IntegerField(label='Trim Hours')
     keep_hours = forms.IntegerField(label='Keep Hours')
     bin_hours = forms.ChoiceField(label='Bin Hours', choices=[(1, '1'), (2, '2'), (3, '3'), (4, '4'), (6, '6'),
-                                                              (8, '8'), (12, '12'), (24, '24'),])
+                                                              (12, '12'), (24, '24'),])
     # bin_hours = forms.IntegerField(label='Bin Hours')
+    start_cycle = forms.ChoiceField(label='Start Cycle', choices=[('Start Dark', 'Start Dark'),
+                                                                  ('Start Light', 'Start Light'),])
 
     def clean_file_input(self):
         """

@@ -131,6 +131,7 @@ def trim_all_clams_data(directory_path, trim_hours, keep_hours, start_dark):
 
 def bin_clams_data(file_path, bin_hours):
     df = pd.read_csv(file_path)
+    bin_hours = int(bin_hours)
 
     # Convert 'DATE/TIME' column to datetime format
     df['DATE/TIME'] = pd.to_datetime(df['DATE/TIME'])

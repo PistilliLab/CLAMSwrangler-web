@@ -4,7 +4,7 @@ import pandas as pd
 from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.shortcuts import render, redirect
-from django.http import Http404, JsonResponse, HttpResponse
+from django.http import Http404, JsonResponse, HttpResponse, HttpResponseRedirect
 from wsgiref.util import FileWrapper
 from .forms import UserInputForm
 from clams_processing import clean_all_clams_data, trim_all_clams_data, process_directory, recombine_columns, \
@@ -17,6 +17,13 @@ def homepage_view(request):
     if request.method == 'POST':
         form = UserInputForm(request.POST, request.FILES)
         if form.is_valid():
+            subject_ids = request.POST.getlist('subject_id[]')
+            group_labels = request.POST.getlist('group_label[]')
+
+            # Create a list of dictionaries for each subject and their group
+            subject_data = [{'id': sid, 'group': grp} for sid, grp in zip(subject_ids, group_labels)]
+            request.session['subject_data'] = subject_data  # Save to session
+
             # Process the form data
             trim_hours = form.cleaned_data['trim_hours']
             keep_hours = form.cleaned_data['keep_hours']
@@ -58,6 +65,8 @@ def homepage_view(request):
 
             # Zip the processed files and return
             zip_directory(upload_dir, os.path.join(settings.MEDIA_ROOT, f'{upload_dir}.zip'))
+
+            return HttpResponseRedirect('/')
 
     else:
         form = UserInputForm()
@@ -105,3 +114,21 @@ def download_zip(request, upload_id):
 def check_zip_exists(request, upload_id):
     file_path = os.path.join(settings.MEDIA_ROOT, f'{upload_id}.zip')
     return JsonResponse({'exists': os.path.exists(file_path)})
+
+
+def download_config_template(request):
+    """Download the experiment configuration template file.
+    The template file contains the expected columns for the experiment configuration file.
+
+    Returns: HttpResponse object with the experiment configuration template file.
+    """
+
+    # Path to the experiment configuration file
+    config_file = os.path.join(settings.MEDIA_ROOT, 'config', 'experiment_config.csv')
+
+    if os.path.exists(config_file):
+        with open(config_file, 'rb') as fh:
+            response = HttpResponse(FileWrapper(fh), content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename=experiment_config.csv'
+            return response
+    raise Http404

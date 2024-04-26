@@ -10,7 +10,8 @@
             <div class="col-md-8 text-center">
                 <h3>How To Use</h3>
                 <ol class="list-unstyled">
-                    <li>Enter the path to the directory containing all the .csv CLAMS data files you wish to process.</li>
+                    <li>Download the experimental configuration file template and define your subject IDs and corresponding group label. Upload the completed file.</li>
+                    <li>Select all of the .csv raw CLAMS data files that you wish to process and click upload.</li>
                     <li>Enter the number of hours you wish to trim from the beginning of the data and the light cycle to start in. Somewhere between 1-6 hours for most runs, or 0 if a very short run.</li>
                     <li>Enter the number of hours you wish to retain after trimming to be used for analysis.</li>
                     <li>Enter the size of the bin in hours. Must be a factor of 12. (e.g. 1, 2, 3, 4, 6, 12)</li>
@@ -20,26 +21,58 @@
             </div>
         </div>
     </div>
-
+    
+    <!-- Experimental Configuration File form-->
     <div class="container-md my-4">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div id="file-droppable" class="drag-drop-area" onclick="document.getElementById('fileElem').click();">
-                    <form class="my-form">
-                        <p>Upload multiple .csv files from CLAMS.</p>
-                        <p>Click or drag-and-drop to select files.</p>
-                        <input type="file" id="fileElem" multiple accept=".csv" onchange="handleFiles(this.files)" style="display: none;">
-                        <label class="button" for="fileElem"></label>
-                        <div id="gallery"></div>
-                    </form>
-                    <div id="file-list"></div>
-                    <button type="button" onclick="clearFiles(event)">Clear Files</button>
-                    <button type="button" onclick="uploadFiles(event)">Upload Files</button>
-                </div>
+    <h3>1.) Experimental configuration file</h3>
+    <!-- button to download the experimental configuration file template -->
+    <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'download_config_template' %}'">Download Config Template</button>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div id="file-droppable1" class="drag-drop-area" onclick="document.getElementById('fileElem1').click();">
+                <form class="my-form">
+                    <p>Upload the filled out experimental configuration file.</p>
+                    <p>Click or drag-and-drop to select file.</p>
+                    <input type="file" id="fileElem1" accept=".csv" onchange="handleFiles(this.files, '1')" style="display: none;">
+                    <label class="button" for="fileElem1">Select config file.</label>
+                    <div id="gallery1"></div>
+                </form>
+                <div id="file-list1"></div>
+                <button type="button" onclick="clearFiles(event, '1')">Clear Files</button>
+                <button type="button" onclick="uploadFiles(event, '1')">Upload Files</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CLAMS Data File form-->
+    <div class="container-md my-4">
+    <h3>2.) Upload CLAMS data files.</h3>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div id="file-droppable2" class="drag-drop-area" onclick="document.getElementById('fileElem2').click();">
+                <form class="config-form">
+                    <p>Upload multiple .csv files from CLAMS.</p>
+                    <p>Click or drag-and-drop to select files.</p>
+                    <input type="file" id="fileElem2" multiple accept=".csv" onchange="handleFiles(this.files, '2')" style="display: none;">
+                    <label class="button" for="fileElem2">Select raw file(s).</label>
+                    <div id="gallery2"></div>
+                </form>
+                <div id="file-list2"></div>
+                <button type="button" onclick="clearFiles(event, '2')">Clear Files</button>
+                <button type="button" onclick="uploadFiles(event, '2')">Upload Files</button>
+            </div>
+        </div>
+    </div>
 
-                <form method="post" enctype="multipart/form-data" class="text-center dropzone">
+    <!-- Processing form-->
+    <div class="container-md my-4">
+    <h3>3.) Specify processing settings.</h3>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <form id="uploadForm" method="post" enctype="multipart/form-data" class="text-center dropzone">
                     {% csrf_token %}
                     {{ form.as_p }}
+                    
                     <button type="submit" class="btn btn-primary">Submit</button>
                     <a href="#" id="downloadLink" class="btn btn-secondary disabled" tabindex="-1" aria-disabled="true">Download Zip</a>
                 </form>
