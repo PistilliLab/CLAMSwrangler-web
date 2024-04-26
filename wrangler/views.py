@@ -1,5 +1,6 @@
 import os
 import uuid
+import shutil
 import pandas as pd
 from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
@@ -9,7 +10,7 @@ from wsgiref.util import FileWrapper
 from .forms import UserInputForm
 from clams_processing import clean_all_clams_data, trim_all_clams_data, process_directory, recombine_columns, \
     reformat_csvs_in_directory
-from helpers import get_latest_version, initialize_experiment_config_file, zip_directory
+from helpers import get_latest_version, zip_directory
 
 
 def homepage_view(request):
@@ -22,38 +23,18 @@ def homepage_view(request):
             trim_hours = form.cleaned_data['trim_hours']
             keep_hours = form.cleaned_data['keep_hours']
             bin_hours = form.cleaned_data['bin_hours']
+            start_cycle = form.cleaned_data['start_cycle']
 
             # Access the upload_dir session variable
             upload_dir = request.session.get('upload_dir', None)
             print(upload_dir)
             if upload_dir:
-                experiment_config_path = os.path.join(settings.MEDIA_ROOT, 'config')
-                experiment_config_file = os.path.join(experiment_config_path, 'config.csv')
-
-                # Check if the experiment configuration file exists
-                if not os.path.exists(experiment_config_file):
-                    # Initialize a new experiment configuration file
-                    initialize_experiment_config_file(experiment_config_path)
-
-                    # Check if the user provided a config file to be copied
-                    # selected_config_file = config_file_entry.get()
-                    if os.path.exists(experiment_config_file):
-                        try:
-                            # Read the selected config file
-                            config_df = pd.read_csv(experiment_config_file)
-                            print(config_df.columns)
-                            expected_columns = ["ID", "GROUP_LABEL"]
-                            if all(col in config_df.columns for col in expected_columns):
-                                # Copy the selected config file to the new experiment configuration file
-                                config_file_dest = os.path.join(experiment_config_path, 'config.csv')
-                                config_df.to_csv(config_file_dest, index=False, columns=expected_columns)
-                        except (pd.errors.EmptyDataError, pd.errors.ParserError, ValueError) as e:
-                            # Handle errors while reading/copying the selected config file
-                            print(f"Error copying config file: {str(e)}\n")
+                experiment_config_path = os.path.join(settings.MEDIA_ROOT, upload_dir, 'config')
+                experiment_config_file = os.path.join(experiment_config_path, 'experiment_config.csv')
 
                 clean_all_clams_data(upload_dir)
-                trim_all_clams_data(upload_dir, trim_hours, keep_hours, "Start Dark")
-                process_directory(upload_dir, bin_hours)
+                trim_all_clams_data(upload_dir, trim_hours, keep_hours, start_cycle)
+                process_directory(upload_dir, 1)
                 recombine_columns(upload_dir, experiment_config_file)
                 reformat_csvs_in_directory(os.path.join(upload_dir, 'Combined_CLAMS_data'))
 
@@ -94,10 +75,24 @@ def upload_csv_files(request):
             # Use existing directory if session already started
             upload_dir = request.session.get('upload_dir', '')
 
+        # Check if the request contains the config file
+        config_file = request.FILES.get('config_file')
+        if config_file:
+            # Create the 'config' subfolder if it doesn't exist
+            config_dir = os.path.join(upload_dir, 'config')
+            os.makedirs(config_dir, exist_ok=True)
+
+            # Save the config file to the 'config' subfolder
+            config_file_path = os.path.join(config_dir, 'experiment_config.csv')
+            with open(config_file_path, 'wb+') as destination:
+                for chunk in config_file.chunks():
+                    destination.write(chunk)
+
         # Save files uploaded in this request
         files = request.FILES.getlist('file')
         for file in files:
             file_path = os.path.join(upload_dir, file.name)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, 'wb+') as destination:
                 for chunk in file.chunks():
                     destination.write(chunk)
@@ -141,3 +136,13 @@ def download_config_template(request):
             response['Content-Disposition'] = 'attachment; filename=experiment_config.csv'
             return response
     raise Http404
+
+
+def clear_session(request):
+    upload_dir = request.session.get('upload_dir', None)
+    if upload_dir and os.path.exists(upload_dir):
+        shutil.rmtree(upload_dir)  # Delete the session folder and its contents
+
+    request.session.flush()  # Clear all session data
+
+    return JsonResponse({'message': 'Session cleared successfully'})

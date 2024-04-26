@@ -19,7 +19,7 @@
     
     <!-- Experimental Configuration File form-->
     <div class="container-md my-4">
-    <h3>1.) Experimental configuration file</h3>
+    <h3>1.) Experimental configuration.</h3>
     <!-- button to download the experimental configuration file template -->
     <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'download_config_template' %}'">Download Config Template</button>
     <p></p>
@@ -65,26 +65,57 @@
 
     <!-- Processing form-->
     <div class="container-md my-4">
-    <h3>3.) Specify processing settings.</h3>
-    <p>Data can be processed with a range of settings to allow for the most flexibility in downstream analyses.</p>
-    <p>For more information on the settings, refer to the <a href="#">documentation.</a></p>
-    <ol>
-        <li>Trim hours: the number of hours to trim from the beginning of the data.</li>
-        <li>Keep hours: the number of hours to keep (e.g., 96 hours of data). This value should not exceed the duration of your shortest data collection window.</li>
-        <li>Bin hours: how the data will be averaged into bins. For example, data can be averaged hourly for each animal or for a 24 hour period.</li>
-        <li>Start cycle: define whether you want the data cleaning to start at the light or dark cycle of the CLAMS experiment.</li>
-    </ol>    
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <form id="uploadForm" method="post" enctype="multipart/form-data" class="text-center dropzone">
-                    {% csrf_token %}
-                    {{ form.as_p }}
-                    
-                    <button type="submit" class="btn btn-primary">Submit</button>
-                    <a href="#" id="downloadLink" class="btn btn-secondary disabled" tabindex="-1" aria-disabled="true">Download Zip</a>
-                </form>
+        <h3>3.) Specify processing settings.</h3>
+        <p>Data can be processed with a range of settings to allow for the most flexibility in downstream analyses.</p>
+        <p>For more information on the settings, refer to the <a href="#">documentation.</a></p>
+        <ol>
+            <li>Trim hours: the number of hours to trim from the beginning of the data.</li>
+            <li>Keep hours: the number of hours to keep (e.g., 96 hours of data). This value should not exceed the duration of your shortest data collection window.</li>
+            <li>Bin hours: how the data will be averaged into bins. For example, data can be averaged hourly for each animal or for a 24 hour period.</li>
+            <li>Start cycle: define whether you want the data cleaning to start at the light or dark cycle of the CLAMS experiment.</li>
+        </ol>
+        <form id="uploadForm" method="post" enctype="multipart/form-data" class="text-center dropzone">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-3 my-4">
+                    <div class="form-group">
+                        <label for="{{ form.trim_hours.id_for_label }}">{{ form.trim_hours.label }}</label>
+                        {{ form.trim_hours }}
+                    </div>
+                </div>
+                <div class="col-md-3 my-4">
+                    <div class="form-group">
+                        <label for="{{ form.keep_hours.id_for_label }}">{{ form.keep_hours.label }}</label>
+                        {{ form.keep_hours }}
+                    </div>
+                </div>
+                <div class="col-md-3 my-4">
+                    <div class="form-group">
+                        <label>{{ form.bin_hours.label }}</label>
+                        <div>
+                            {% for choice in form.bin_hours %}
+                                <div class="form-check form-check-inline">
+                                    {{ choice.tag }}
+                                    <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                        {{ choice.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 my-4">
+                    <div class="form-group">
+                        <label for="{{ form.start_cycle.id_for_label }}">{{ form.start_cycle.label }}</label>
+                        <br>
+                        {{ form.start_cycle }}
+                    </div>
+                </div>
             </div>
-        </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+            <a href="#" id="downloadLink" class="btn btn-secondary disabled" tabindex="-1" aria-disabled="true">Download Zip</a>
+            <button type="button" class="btn btn-danger" id="clearSessionBtn">Clear Session</button>
+        </form>
     </div>
 
 <!-- JavaScript -->    
@@ -174,11 +205,18 @@
         let url = '{% url "upload_csv_files" %}';
         let formData = new FormData();
     
-        // You need to fetch files from the specific input element
-        let files = document.getElementById('fileElem' + idSuffix).files;
-        [...files].forEach(file => {
-            formData.append('file', file);
-        });
+        // Fetch files from the specific input element
+        if (idSuffix === '1') {
+            // Config file upload
+            let configFile = document.getElementById('fileElem1').files[0];
+            formData.append('config_file', configFile);
+        } else if (idSuffix === '2') {
+            // Data files upload
+            let files = document.getElementById('fileElem2').files;
+            [...files].forEach(file => {
+                formData.append('file', file);
+            });
+        }
     
         fetch(url, {
             method: 'POST',
@@ -202,7 +240,6 @@
         .catch(error => console.error(error));
     }
 
-
     function checkZipFile(upload_id) {
         let url = `/check-zip/${upload_id}/`; // URL to endpoint that checks for zip file existence
 
@@ -223,6 +260,22 @@
         })
         .catch(error => console.error('Error:', error));
     }
+    
+    document.getElementById('clearSessionBtn').addEventListener('click', function() {
+        fetch('{% url "clear_session" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            // Optionally, you can reload the page or update the UI as needed
+            location.reload();
+        })
+        .catch(error => console.error(error));
+    });
 
 
 </script>
