@@ -34,13 +34,17 @@ def homepage_view(request):
 
                 clean_all_clams_data(upload_dir)
                 trim_all_clams_data(upload_dir, trim_hours, keep_hours, start_cycle)
-                process_directory(upload_dir, 1)
-                recombine_columns(upload_dir, experiment_config_file)
-                reformat_csvs_in_directory(os.path.join(upload_dir, 'Combined_CLAMS_data'))
+
+                # Loop through the bin hours and process the data
+                for bin_hour in bin_hours:
+                    process_directory(upload_dir, bin_hour)
+                    recombine_columns(upload_dir, experiment_config_file, bin_hour)
+                    reformat_csvs_in_directory(os.path.join(upload_dir, f'{bin_hour}hour_bins_Combined_CLAMS_data'))
 
             # Zip the processed files and return
             zip_directory(upload_dir, os.path.join(settings.MEDIA_ROOT, f'{upload_dir}.zip'))
 
+            # Sends user back to the homepage after submitting the form
             return HttpResponseRedirect('/')
 
     else:
@@ -128,7 +132,7 @@ def download_config_template(request):
     """
 
     # Path to the experiment configuration file
-    config_file = os.path.join(settings.MEDIA_ROOT, 'config', 'experiment_config.csv')
+    config_file = os.path.join(settings.MEDIA_ROOT, 'templates', 'experiment_config.csv')
 
     if os.path.exists(config_file):
         with open(config_file, 'rb') as fh:

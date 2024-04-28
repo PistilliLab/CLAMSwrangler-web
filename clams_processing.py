@@ -222,7 +222,11 @@ def bin_clams_data(file_path, bin_hours):
     df_binned = df_binned.round(4)
 
     # Save the binned data to a new CSV file
-    output_path = file_path.replace("Trimmed_CLAMS_data", "Binned_CLAMS_data").replace(".csv", f"_{bin_hours}hour_bins.csv")
+    output_path = file_path.replace(
+        "Trimmed_CLAMS_data", f"{bin_hours}hour_bins_Binned_CLAMS_data"
+    ).replace(
+        ".csv", f"_{bin_hours}hour_bins.csv"
+    )
 
     # Check if the directory exists, if not, create it
     output_directory = os.path.dirname(output_path)
@@ -256,14 +260,17 @@ def extract_id_number(filename):
         return None
 
 
-def recombine_columns(directory_path, experiment_config_file):
-    # Define Combined CLAMS data directory
-    combined_directory = os.path.join(directory_path, "Combined_CLAMS_data")
+def recombine_columns(directory_path, experiment_config_file, bin_hours):
+    # Use bin_hours to create a directory for each binned version
+    bin_hours = int(bin_hours)
+
+    # Define Combined CLAMS data directory for each bin window
+    combined_directory = os.path.join(directory_path, f"{bin_hours}hour_bins_Combined_CLAMS_data")
     if not os.path.exists(combined_directory):
         os.makedirs(combined_directory)
 
     # Define input directory
-    input_directory = os.path.join(directory_path, "Binned_CLAMS_data")
+    input_directory = os.path.join(directory_path, f"{bin_hours}hour_bins_Binned_CLAMS_data")
 
     # Desired output variables
     output_variables = ['ACCCO2', 'ACCO2', 'FEED1 ACC', 'FEED1', 'RER', 'AMB', 'AMB ACC', 'VCO2', 'VO2', 'WHEEL ACC', 'WHEEL']
