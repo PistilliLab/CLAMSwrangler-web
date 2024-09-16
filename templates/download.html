@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% extends 'base.html' %}
+
+{% block content %}
+
+<body>
+    <h1>Your data is ready for download.</h1>
+    <p>
+        <a href="{% url 'download_zip_file' upload_id=upload_id %}" class="btn btn-primary">Download Zip File</a>
+    </p>
+</body>
+
+{% endblock content %}
+
+</html>

@@ -1,16 +1,15 @@
 import os
 import uuid
 import shutil
-import pandas as pd
 from django.conf import settings
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.shortcuts import render, redirect
-from django.http import Http404, JsonResponse, HttpResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, HttpResponseForbidden, FileResponse
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 from wsgiref.util import FileWrapper
 from .forms import UserInputForm
-from clams_processing import clean_all_clams_data, trim_all_clams_data, process_directory, recombine_columns, \
-    reformat_csvs_in_directory
-from helpers import get_latest_version, zip_directory
+from .tasks import process_files_task
+from celery.result import AsyncResult
 
 
 def homepage_view(request):
@@ -19,38 +18,44 @@ def homepage_view(request):
         form = UserInputForm(request.POST, request.FILES)
         if form.is_valid():
 
-            # Process the form data
+            # Retrieve the form data
             trim_hours = form.cleaned_data['trim_hours']
             keep_hours = form.cleaned_data['keep_hours']
             bin_hours = form.cleaned_data['bin_hours']
             start_cycle = form.cleaned_data['start_cycle']
 
-            # Access the upload_dir session variable
-            upload_dir = request.session.get('upload_dir', None)
-            print(upload_dir)
-            if upload_dir:
-                experiment_config_path = os.path.join(settings.MEDIA_ROOT, upload_dir, 'config')
-                experiment_config_file = os.path.join(experiment_config_path, 'experiment_config.csv')
+            # Get upload_id from session
+            upload_id = request.session.get('upload_id')
+            if not upload_id:
+                return JsonResponse({'error': 'No upload session found'}, status=400)
 
-                clean_all_clams_data(upload_dir)
-                trim_all_clams_data(upload_dir, trim_hours, keep_hours, start_cycle)
+            # Enqueue the processing task
+            task = process_files_task.delay(upload_id, trim_hours, keep_hours, bin_hours, start_cycle)
 
-                # Loop through the bin hours and process the data
-                for bin_hour in bin_hours:
-                    process_directory(upload_dir, bin_hour)
-                    recombine_columns(upload_dir, experiment_config_file, bin_hour)
-                    reformat_csvs_in_directory(os.path.join(upload_dir, f'{bin_hour}hour_bins_Combined_CLAMS_data'))
-
-            # Zip the processed files and return
-            zip_directory(upload_dir, os.path.join(settings.MEDIA_ROOT, f'{upload_dir}.zip'))
-
-            # Sends user back to the homepage after submitting the form
-            return HttpResponseRedirect('/')
-
+            # Redirect to the processing page with the task ID
+            return redirect('processing', task_id=task.id)
+        else:
+            return render(request, 'home.html', {'form': form})
     else:
         form = UserInputForm()
+        return render(request, 'home.html', {'form': form})
 
-    return render(request, 'home.html', {'form': form})
+
+def processing_view(request, task_id):
+    return render(request, 'processing.html', {'task_id': task_id})
+
+
+def download_view(request, upload_id):
+    # Check if the upload_id matches the session's upload_id
+    session_upload_id = request.session.get('upload_id')
+    if upload_id != session_upload_id:
+        return HttpResponseForbidden('You are not authorized to access this file.')
+
+    file_path = os.path.join(settings.MEDIA_ROOT, f'{upload_id}.zip')
+    if os.path.exists(file_path):
+        return render(request, 'download.html', {'upload_id': upload_id})
+    else:
+        return HttpResponseNotFound('File not found.')
 
 
 def upload_csv_files(request):
@@ -71,13 +76,9 @@ def upload_csv_files(request):
             upload_id = str(uuid.uuid4())
             request.session['upload_id'] = upload_id  # Store it in the session
 
-            # Create directory for this session
-            upload_dir = os.path.join(settings.MEDIA_ROOT, upload_id)
-            os.makedirs(upload_dir, exist_ok=True)
-            request.session['upload_dir'] = upload_dir  # Store directory path in session
-        else:
-            # Use existing directory if session already started
-            upload_dir = request.session.get('upload_dir', '')
+        upload_dir = os.path.join(settings.MEDIA_ROOT, upload_id)
+        os.makedirs(upload_dir, exist_ok=True)
+        request.session['upload_dir'] = upload_dir  # Store directory path in session
 
         # Check if the request contains the config file
         config_file = request.FILES.get('config_file')
@@ -109,14 +110,32 @@ def upload_csv_files(request):
         return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
 
 
-def download_zip(request, upload_id):
+def task_status(request, task_id):
+    result = AsyncResult(task_id)
+    response_data = {'status': result.status}
+    if result.status == 'SUCCESS':
+        # Ensure result.result is not None
+        task_result = result.result or {}
+        response_data.update(task_result)
+    elif result.status == 'FAILURE':
+        # Handle exceptions properly
+        response_data['error'] = str(result.result)
+    return JsonResponse(response_data)
+
+
+def download_zip_file(request, upload_id):
+    # Check if the upload_id matches the session's upload_id
+    session_upload_id = request.session.get('upload_id')
+    if upload_id != session_upload_id:
+        return HttpResponseForbidden('You are not authorized to access this file.')
+
     file_path = os.path.join(settings.MEDIA_ROOT, f'{upload_id}.zip')
     if os.path.exists(file_path):
-        with open(file_path, 'rb') as fh:
-            response = HttpResponse(FileWrapper(fh), content_type='application/zip')
-            response['Content-Disposition'] = f'attachment; filename={os.path.basename(file_path)}'
-            return response
-    raise Http404
+        response = FileResponse(open(file_path, 'rb'), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename={upload_id}.zip'
+        return response
+    else:
+        return HttpResponseNotFound('File not found.')
 
 
 def check_zip_exists(request, upload_id):

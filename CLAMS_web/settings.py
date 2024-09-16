@@ -135,6 +135,14 @@ STATIC_ROOT = str(BASE_DIR.joinpath('staticfiles'))
 MEDIA_ROOT = str(BASE_DIR.joinpath('media'))
 MEDIA_URL = '/media/'
 
+# Celery settings
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the message broker
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Use Redis as the result backend
+CELERY_ACCEPT_CONTENT = ['json']  # Only accept JSON as task result format
+CELERY_TASK_SERIALIZER = 'json'   # Serialize tasks as JSON
+CELERY_RESULT_SERIALIZER = 'json'  # Serialize results as JSON
+CELERY_TIMEZONE = 'UTC'           # Set the timezone
+CELERY_TASK_ALWAYS_EAGER = False
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-auto-field

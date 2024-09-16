@@ -113,7 +113,6 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="#" id="downloadLink" class="btn btn-secondary disabled" tabindex="-1" aria-disabled="true">Download Zip</a>
             <button type="button" class="btn btn-danger" id="clearSessionBtn">Clear Session</button>
         </form>
     </div>
@@ -122,6 +121,7 @@
 <script>
     let dropArea = document.getElementById('file-droppable')
     let fileArray = []; // Array to store files to upload
+    
 
     ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, preventDefaults, false)
@@ -131,10 +131,9 @@
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                // Identify CSRF token cookie
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
                     cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                     break;
                 }
@@ -142,7 +141,10 @@
         }
         return cookieValue;
     }
-
+    
+    // Declare a global variable for uploadId
+    let uploadId = null; 
+    
     function preventDefaults (e) {
         e.preventDefault()
         e.stopPropagation()
@@ -196,28 +198,50 @@
         document.getElementById('file-list' + idSuffix).textContent = fileNames;
     }
 
+    // Function to handle form submission
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        let formData = new FormData(this);
+
+        fetch('', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.task_id) {
+                pollTaskStatus(data.task_id);
+            } else if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+    
+    // Function to handle file uploads
     function uploadFiles(e, idSuffix) {
         if (e) {
             e.preventDefault();
             e.stopPropagation();
         }
-    
+
         let url = '{% url "upload_csv_files" %}';
         let formData = new FormData();
-    
-        // Fetch files from the specific input element
+
         if (idSuffix === '1') {
-            // Config file upload
             let configFile = document.getElementById('fileElem1').files[0];
             formData.append('config_file', configFile);
         } else if (idSuffix === '2') {
-            // Data files upload
             let files = document.getElementById('fileElem2').files;
             [...files].forEach(file => {
                 formData.append('file', file);
             });
         }
-    
+
         fetch(url, {
             method: 'POST',
             body: formData,
@@ -228,34 +252,32 @@
         .then(response => response.json())
         .then(data => {
             if (data.upload_id) {
-                {#let downloadLink = document.getElementById('downloadLink' + idSuffix);#}
-                {#downloadLink.href = `/download/${data.upload_id}/`;#}
-                {#downloadLink.classList.remove('disabled');#}
-                {#downloadLink.setAttribute('aria-disabled', 'false');#}
-                // Start checking for zip file availability, using the uploadId returned from the server
-                checkZipFile(data.upload_id);
+                uploadId = data.upload_id; // Store upload_id globally
+                console.log('Upload ID:', uploadId);
+                // Optionally, update the UI to reflect successful upload
             }
             clearFiles(null, idSuffix); // Optionally clear files after upload
         })
         .catch(error => console.error(error));
     }
 
+    // Check for processed results zip file
     function checkZipFile(upload_id) {
-        let url = `/check-zip/${upload_id}/`; // URL to endpoint that checks for zip file existence
+    let url = `/check-zip/${upload_id}/`; // URL to check zip file existence
 
-        fetch(url)
+    fetch(url)
         .then(response => response.json())
         .then(data => {
-            if(data.exists) {
+            if (data.exists) {
                 // Enable download link if zip file exists
                 let downloadLink = document.getElementById('downloadLink');
                 downloadLink.classList.remove('disabled');
                 downloadLink.setAttribute('href', `/download/${upload_id}/`);
                 downloadLink.setAttribute('aria-disabled', 'false');
-                downloadLink.textContent = 'Download Zip'; // Update button text if needed
+                downloadLink.textContent = 'Download Zip'; // Update button text
             } else {
-                // Optionally, re-check after some time
-                setTimeout(() => checkZipFile(upload_id), 5000); // Check every 5 seconds
+                // Re-check after some time (poll every 5 seconds)
+                setTimeout(() => checkZipFile(upload_id), 5000);
             }
         })
         .catch(error => console.error('Error:', error));
@@ -271,16 +293,14 @@
         .then(response => response.json())
         .then(data => {
             console.log(data.message);
-            // Optionally, you can reload the page or update the UI as needed
             location.reload();
         })
         .catch(error => console.error(error));
     });
 
-
 </script>
-    
-<!-- Styling, fixes section alignment -->    
+
+<!-- Styling, fixes section alignment -->
 <style>
     /* Ensure consistent margins for all sections */
     .container-md {
@@ -293,7 +313,7 @@
         margin-left: 0;
         padding-left: 0;
     }
-    
+
     /* Optional: Align buttons and forms consistently */
     .row, .form-group {
         margin-left: 0;
