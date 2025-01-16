@@ -7,6 +7,41 @@ import numpy as np
 import pandas as pd
 
 
+def identify_ids_from_config_file(experiment_config_file):
+    """this can just extract the ID's and store in a list. Can be integrated into the below functions if these values
+    are not needed globally."""
+    pass
+
+
+def merge_fragmented_runs_by_id(path_to_original_csv_files):
+    """This function will use the list of ID's and based on that, merge all files associated with an ID based
+    on the date and time column. In other words, it will put all the data points into one file that maintains the
+    original formatting in the export .csv files so that it can be used in CalR. But also so it can be properly
+    processed with the other functions we've written to be reformatted for stats."""
+    pass
+
+
+def align_dates(path_to_merged_csv_files):
+    """This function will align the dates so all the runs appear to have been started at the same time. For the
+    reformatting our code does, this is not necessary. But for CalR and visualization in that, it is necessary."""
+    pass
+
+
+def quality_control(path_to_aligned_csv_files):
+    """This function will run quality control on each of the merged and date aligned files. The output of this will
+    either go into the clean_all_clams_data function or be put into a folder to be used in CalR.
+
+    QC to add includes thresholds for O2IN values, """
+    pass
+
+
+def make_channel_unique(path_to_aligned_csv_files):
+    """This could be done at any point after everything is combined. But if I recall correctly, Calr assumes that
+    each animal is in a unique channel. So when multiple runs are combined, they may overlap and it trys to
+    combine them or isn't sure what to do. However, I don't know if it's expecting channels within a certain range
+    either, so will have to try combining and running in Calr to see."""
+
+
 def clean_all_clams_data(directory_path):
     """Reformat all CLAMS data files (.csv) in the provided directory by dropping unnecessary rows.
 

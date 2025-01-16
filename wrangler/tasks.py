@@ -15,6 +15,8 @@ def process_files_task(upload_id, trim_hours, keep_hours, bin_hours, start_cycle
         experiment_config_path = os.path.join(upload_dir, 'config')
         experiment_config_file = os.path.join(experiment_config_path, 'experiment_config.csv')
 
+        # TODO: add new merging and QC functions here before feeding to clean function
+
         clean_all_clams_data(upload_dir)
         trim_all_clams_data(upload_dir, trim_hours, keep_hours, start_cycle)
 
