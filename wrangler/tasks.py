@@ -3,7 +3,8 @@ from celery import shared_task
 from django.conf import settings
 from clams_processing import (
     clean_all_clams_data, trim_all_clams_data, process_directory,
-    recombine_columns, reformat_csvs_in_directory
+    recombine_columns, reformat_csvs_in_directory, identify_ids_from_config_file, merge_fragmented_runs_by_id,
+    quality_control
 )
 from helpers import zip_directory
 
@@ -16,8 +17,11 @@ def process_files_task(upload_id, trim_hours, keep_hours, bin_hours, start_cycle
         experiment_config_file = os.path.join(experiment_config_path, 'experiment_config.csv')
 
         # TODO: add new merging and QC functions here before feeding to clean function
+        # identify_ids_from_config_file(experiment_config_file)
+        # merge_fragmented_runs_by_id(upload_dir)
 
         clean_all_clams_data(upload_dir)
+        quality_control(upload_dir)
         trim_all_clams_data(upload_dir, trim_hours, keep_hours, start_cycle)
 
         # Loop through the bin hours and process the data

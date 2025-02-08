@@ -1,37 +1,214 @@
 import glob
 import os
 import re
+import shutil
 from datetime import timedelta
 
 import numpy as np
 import pandas as pd
 
+# Global variable to hold the list of experiment IDs
+experiment_ids = []
 
 def identify_ids_from_config_file(experiment_config_file):
-    """this can just extract the ID's and store in a list. Can be integrated into the below functions if these values
-    are not needed globally."""
-    pass
+    """
+    Reads the experiment configuration CSV file and extracts a list of unique IDs.
+
+    Parameters:
+        experiment_config_file (str): Path to the experiment config CSV file.
+                                     The file is expected to have a header with at least
+                                     the columns 'ID' and 'GROUP_LABEL'.
+
+    Returns:
+        list: A list of unique IDs from the configuration file.
+    """
+    global experiment_ids
+    try:
+        config_df = pd.read_csv(experiment_config_file)
+    except Exception as e:
+        print(f"Error reading experiment config file: {e}")
+        return []
+
+    if 'ID' not in config_df.columns:
+        print("The config file does not contain an 'ID' column.")
+        return []
+
+    # Extract unique IDs; depending on your file these may be ints or strings.
+    experiment_ids = config_df['ID'].unique().tolist()
+    print(experiment_ids)
+    return experiment_ids
 
 
 def merge_fragmented_runs_by_id(path_to_original_csv_files):
-    """This function will use the list of ID's and based on that, merge all files associated with an ID based
-    on the date and time column. In other words, it will put all the data points into one file that maintains the
-    original formatting in the export .csv files so that it can be used in CalR. But also so it can be properly
-    processed with the other functions we've written to be reformatted for stats."""
-    pass
+    """
+    For each CSV file in the provided directory, identify the animal (using the line containing 'Subject ID'),
+    group files by that animal, and then merge them in run order. For each animal:
+
+      - If only one file exists, copy it to the output directory.
+      - If multiple files exist, choose the earliest file (based on file modification time) as the base file,
+        keeping its header. Then, for each subsequent file, extract only the data rows (assumed to start at row 26)
+        and (optionally) stop reading if the value in the INTERVAL column does not continue consecutively.
+
+    The merged (or copied) files are written to a new directory named "Aggregated_Runs" inside path_to_original_csv_files.
+    """
+
+    # Create an output directory for aggregated files
+    output_dir = os.path.join(path_to_original_csv_files, "Aggregated_Runs")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Get a list of all CSV files in the directory
+    csv_files = glob.glob(os.path.join(path_to_original_csv_files, "*.csv"))
+
+    # Group files by Subject ID (extracted from the metadata line that contains "Subject ID")
+    files_by_id = {}
+    for file_path in csv_files:
+        try:
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            continue
+
+        subject_id = None
+        # Look for a line containing "Subject ID"
+        for line in lines:
+            if "Subject ID" in line:
+                # Assumes the line is formatted like: "Subject ID, <id>"
+                parts = line.strip().split(',')
+                if len(parts) >= 2:
+                    subject_id = parts[1].strip()
+                break
+        if subject_id is None:
+            print(f"Could not find Subject ID in {file_path}; skipping.")
+            continue
+
+        files_by_id.setdefault(subject_id, []).append(file_path)
+
+    # Process each subject (animal) group
+    for subject_id, file_list in files_by_id.items():
+        # Sort files by modification time (as a proxy for run order)
+        file_list.sort(key=lambda x: os.path.getmtime(x))
+
+        if len(file_list) == 1:
+            # If only one file exists, simply copy it to the output directory.
+            dest = os.path.join(output_dir, os.path.basename(file_list[0]))
+            shutil.copy(file_list[0], dest)
+            print(f"Copied single file for Subject ID {subject_id} to {dest}")
+        else:
+            print(f"Merging {len(file_list)} files for Subject ID {subject_id} ...")
+
+            # Use the earliest file as the base (keeping its header and full content)
+            earliest_file = file_list[0]
+            with open(earliest_file, 'r') as f:
+                aggregated_lines = f.readlines()
+
+            # --- Determine the column order from the base file's header ---
+            # (Search the header lines for one that contains "INTERVAL")
+            header_line_index = None
+            header_columns = None
+            for i, line in enumerate(aggregated_lines):
+                if "INTERVAL" in line:
+                    header_line_index = i
+                    header_columns = line.strip().split(',')
+                    break
+            if header_line_index is None:
+                print(f"Warning: No header with 'INTERVAL' found in {earliest_file}. Will not do interval checking.")
+                interval_col_index = None
+            else:
+                try:
+                    interval_col_index = header_columns.index("INTERVAL")
+                except ValueError:
+                    print(f"Warning: 'INTERVAL' column not found in header of {earliest_file}.")
+                    interval_col_index = None
+
+            # For subsequent files, we assume that the data portion begins at row 26
+            HEADER_LINES_TO_SKIP = 25  # (i.e. skip the first 25 lines; row 26 is index 25)
+
+            # Optionally, find the last interval from the base file (if available) to help check continuity
+            last_interval = None
+            for line in reversed(aggregated_lines):
+                if not line.strip():
+                    continue
+                parts = line.strip().split(',')
+                if interval_col_index is not None and len(parts) > interval_col_index:
+                    try:
+                        last_interval = int(parts[interval_col_index])
+                        break
+                    except ValueError:
+                        continue
+
+            # Helper: process data rows from a file based on consecutive intervals.
+            def extract_data_lines(lines, interval_index):
+                data_rows = []
+                file_last_interval = None
+                for line in lines:
+                    if not line.strip():
+                        continue
+                    parts = line.strip().split(',')
+                    if len(parts) <= interval_index:
+                        continue
+                    try:
+                        current_interval = int(parts[interval_index])
+                    except ValueError:
+                        # If we can’t convert the interval to an int, assume it’s not a data row.
+                        continue
+                    if file_last_interval is None:
+                        # For the very first data row of this file, we accept it (even if it does not
+                        # continue from the previous file’s last interval—sometimes the run restarts).
+                        data_rows.append(line)
+                        file_last_interval = current_interval
+                    else:
+                        if current_interval == file_last_interval + 1:
+                            data_rows.append(line)
+                            file_last_interval = current_interval
+                        else:
+                            # When the sequence breaks, assume the data portion is finished.
+                            break
+                return data_rows, file_last_interval
+
+            # Process every subsequent file and append its data rows
+            for file_path in file_list[1:]:
+                with open(file_path, 'r') as f:
+                    lines = f.readlines()
+                if len(lines) <= HEADER_LINES_TO_SKIP:
+                    print(f"File {file_path} does not have enough lines to contain data; skipping.")
+                    continue
+
+                # Grab all lines after the first 25 (i.e. starting at row 26)
+                candidate_data = lines[HEADER_LINES_TO_SKIP:]
+
+                if interval_col_index is not None:
+                    filtered_data, file_last_interval = extract_data_lines(candidate_data, interval_col_index)
+                    # (If desired, one might check whether the first row of this file is the expected continuation.)
+                    if last_interval is not None and filtered_data:
+                        try:
+                            first_interval = int(filtered_data[0].strip().split(',')[interval_col_index])
+                            if first_interval != last_interval + 1:
+                                # Here you could decide to adjust the intervals or simply note a discontinuity.
+                                # For now, we simply print a warning.
+                                print(
+                                    f"Warning: For file {file_path}, first interval ({first_interval}) does not continue from previous last interval ({last_interval}).")
+                        except ValueError:
+                            pass
+                    # Update last_interval (if any data was found)
+                    if file_last_interval is not None:
+                        last_interval = file_last_interval
+                    aggregated_lines.extend(filtered_data)
+                else:
+                    # If we couldn’t identify the INTERVAL column, simply append all candidate data lines.
+                    aggregated_lines.extend(candidate_data)
+
+            # Write the aggregated output to a new file
+            out_filename = os.path.join(output_dir, f"Aggregated_ID{subject_id}.csv")
+            with open(out_filename, 'w') as f:
+                f.writelines(aggregated_lines)
+            print(f"Aggregated file for Subject ID {subject_id} written to {out_filename}")
 
 
 def align_dates(path_to_merged_csv_files):
     """This function will align the dates so all the runs appear to have been started at the same time. For the
     reformatting our code does, this is not necessary. But for CalR and visualization in that, it is necessary."""
-    pass
-
-
-def quality_control(path_to_aligned_csv_files):
-    """This function will run quality control on each of the merged and date aligned files. The output of this will
-    either go into the clean_all_clams_data function or be put into a folder to be used in CalR.
-
-    QC to add includes thresholds for O2IN values, """
     pass
 
 
@@ -95,6 +272,74 @@ def clean_all_clams_data(directory_path):
             clean_file(file_path, output_directory)
 
 
+def quality_control(directory_path):
+    """
+    Performs quality control on each CSV file in the "Cleaned_CLAMS_data" folder
+    inside the provided parent directory. Rows that fail quality standards are dropped
+    according to these rules:
+
+      1. If any of the columns "VO2", "VCO2", "RER", "FLOW", or "PRESSURE" are equal to 0,
+         the row is dropped.
+      2. If "O2IN" is less than 20.85, the row is dropped.
+      3. If "VO2" is negative or equal to 0, the row is dropped.
+
+    The quality-controlled files are saved into a subdirectory named "QC_Filtered" within the
+    provided parent directory.
+
+    Parameters:
+        directory_path (str): The parent directory containing the "Cleaned_CLAMS_data" folder.
+    """
+
+    # Create an output directory for quality-controlled files
+    qc_dir = os.path.join(directory_path, "QC_Filtered")
+    if not os.path.exists(qc_dir):
+        os.makedirs(qc_dir)
+
+    # Get the path to the cleaned data files
+    cleaned_directory = os.path.join(directory_path, "Cleaned_CLAMS_data")
+
+    # List all CSV files in the cleaned data folder
+    csv_files = [f for f in os.listdir(cleaned_directory)
+                 if os.path.isfile(os.path.join(cleaned_directory, f)) and f.endswith('.csv')]
+
+    for file in csv_files:
+        # Build the full file path before reading it
+        file_path = os.path.join(cleaned_directory, file)
+        try:
+            df = pd.read_csv(file_path)
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            continue
+
+        # Check that the required columns exist
+        required_cols = ["VO2", "VCO2", "RER", "FLOW", "PRESSURE", "O2IN"]
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            print(f"Skipping {file} because the following required columns are missing: {missing_cols}")
+            continue
+
+        # Apply the quality conditions:
+        # 1. Columns VO2, VCO2, RER, FLOW, and PRESSURE must not be 0.
+        cond1 = (df["VO2"] != 0) & (df["VCO2"] != 0) & (df["RER"] != 0) & (df["FLOW"] != 0) & (df["PRESSURE"] != 0)
+        # 2. O2IN must be at least 20.85.
+        cond2 = df["O2IN"] >= 20.85
+        # 3. VO2 must be greater than 0.
+        cond3 = df["VO2"] > 0
+
+        # Combined quality condition
+        quality_mask = cond1 & cond2 & cond3
+        df_qc = df[quality_mask].copy()
+
+        # Save the quality-controlled file to the QC_Filtered directory.
+        out_filename = os.path.join(qc_dir, file)
+        try:
+            df_qc.to_csv(out_filename, index=False)
+            dropped_rows = len(df) - len(df_qc)
+            print(f"Processed '{file}': dropped {dropped_rows} rows; saved QC file to '{out_filename}'.")
+        except Exception as e:
+            print(f"Error writing quality-controlled file for {file}: {e}")
+
+
 def trim_all_clams_data(directory_path, trim_hours, keep_hours, start_dark):
     """Trims all cleaned CLAMS data files in the specified directory.
 
@@ -113,14 +358,14 @@ def trim_all_clams_data(directory_path, trim_hours, keep_hours, start_dark):
         os.makedirs(trimmed_directory)
 
     # Get the path to the cleaned data files
-    cleaned_directory = os.path.join(directory_path, "Cleaned_CLAMS_data")
+    qc_directory = os.path.join(directory_path, "QC_Filtered")
 
     # List all files in the directory
-    files = [f for f in os.listdir(cleaned_directory) if
-             os.path.isfile(os.path.join(cleaned_directory, f)) and f.endswith('.csv')]
+    files = [f for f in os.listdir(qc_directory) if
+             os.path.isfile(os.path.join(qc_directory, f)) and f.endswith('.csv')]
 
     for file in files:
-        file_path = os.path.join(cleaned_directory, file)
+        file_path = os.path.join(qc_directory, file)
 
         # Read the cleaned CSV file
         df = pd.read_csv(file_path)
