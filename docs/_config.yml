@@ -1,8 +1,38 @@
 title: CLAMS Wrangler
 description: Documentation for the CLAMS Wrangler web application.
 theme: just-the-docs
+color_scheme: dark
+logo: "/assets/logo.png"
+
 
 url: https://PistilliLab.github.io/CLAMSwrangler-web
 
+# Aux links for the upper right navigation
 aux_links:
-  Template Repository: https://github.com/PistilliLab/CLAMSwrangler-web
+  "CLAMS Wrangler on GitHub":
+    - "//github.com/PistilliLab/CLAMSwrangler-web"
+
+# Makes Aux links open in a new tab. Default is false
+aux_links_new_tab: true
+
+nav_enabled: true
+
+# Footer last edited timestamp
+last_edit_timestamp: true # show or hide edit time - page must have `last_modified_date` defined in the frontmatter
+last_edit_time_format: "%b %e %Y at %I:%M %p" # uses ruby's time format: https://ruby-doc.org/stdlib-2.7.0/libdoc/time/rdoc/Time.html
+
+# callouts highlight sections of text in a box, use with {: .warning }
+callouts:
+  warning:
+    title: Warning
+    color: red
+  caution:
+    title: Caution
+    color: yellow
+
+# Google Analytics Tracking
+# Supports a CSV of tracking ID strings (eg. "UA-1234567-89,G-1AB234CDE5")
+ga_tracking: G-RBCQDWHPVZ
+ga_tracking_anonymize_ip: true # Use GDPR compliant Google Analytics settings (true/nil by default)
+
+
