@@ -1,0 +1,8 @@
+title: CLAMS Wrangler
+description: Documentation for the CLAMS Wrangler web application.
+theme: just-the-docs
+
+url: https://PistilliLab.github.io/CLAMSwrangler-web
+
+aux_links:
+  Template Repository: https://github.com/PistilliLab/CLAMSwrangler-web
