@@ -15,7 +15,7 @@ This program handles the cleaning (including quality control), trimming, binning
 # Usage
 Visit the [CLAMSwrangler (coming soon)]() website to process your data.
 
-Please visit the [documentation]([https://github.com/PistilliLab/CLAMSwrangler/wiki](https://pistillilab.github.io/CLAMSwrangler-web/)) for a more detailed explanation of using CLAMS Wrangler and whether it is right for your use case.
+Please visit the [documentation](https://pistillilab.github.io/CLAMSwrangler-web/) for a more detailed explanation of using CLAMS Wrangler and whether it is right for your use case.
 
 # Running locally
 While we will make every effort possible to maintain the availabilty of the website once deployed, that may not always be the case. If the website is unavailable, you can run the website locally on your computer and process data that way.
