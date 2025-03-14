@@ -3,7 +3,7 @@ title: Home
 layout: home
 ---
 
-![CLAMS Wrangler logo](/assets/logo.png)
+[CLAMS Wrangler logo](/assets/logo.png)
 
 Welcome to the CLAMS Wrangler documentation!
 
