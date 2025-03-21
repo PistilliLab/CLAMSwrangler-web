@@ -4,12 +4,22 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+    /* Center the content */
+    .centered {
+        text-align: center;
+        margin: 50px auto;
+    }
+</style>
 
 <body>
-    <h1>Your data is ready for download.</h1>
-    <p>
-        <a href="{% url 'download_zip_file' upload_id=upload_id %}" class="btn btn-primary">Download Zip File</a>
-    </p>
+    <div class="centered">
+        <h1>Your data is ready for download.</h1>
+        <p>
+            <a href="{% url 'download_zip_file' upload_id=upload_id %}" class="btn btn-primary">Download Zip File</a>
+        </p>
+    </div>
+
 </body>
 
 {% endblock content %}

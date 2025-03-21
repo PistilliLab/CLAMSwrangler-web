@@ -2,12 +2,29 @@
 <html lang="en">
 
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
+<style>
+    /* Center the content */
+    .centered {
+        text-align: center;
+        margin: 50px auto;
+    }
+    /* Style the loading gif */
+    .loading-gif {
+        width: 200px; /* Adjust size as needed */
+        display: block;
+        margin: 20px auto;
+    }
+</style>
 
 <body>
-    <h1>Your data is being processed. Please wait...</h1>
-    <p id="status">Processing...</p>
+    <div class="centered">
+        <h1>Your data is being processed. Please wait.</h1>
+        <p id="status">Processing...</p>
+        <img class="loading-gif" src="{% static 'images/Infinity@1x-1.0s-200px-200px.gif' %}" alt="Processing animation">
+    </div>
 
     <script>
         function pollTaskStatus(taskId) {
@@ -31,7 +48,6 @@
                     document.getElementById('status').textContent = 'An error occurred while processing your data.';
                 });
         }
-
 
         document.addEventListener('DOMContentLoaded', function() {
             let taskId = '{{ task_id }}';
