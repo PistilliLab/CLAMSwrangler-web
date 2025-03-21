@@ -7,60 +7,48 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
-# Global variable to hold the list of experiment IDs
-experiment_ids = []
 
-def identify_ids_from_config_file(experiment_config_file):
+def merge_fragmented_runs_by_id(path_to_original_csv_files, experiment_config_file):
     """
-    Reads the experiment configuration CSV file and extracts a list of unique IDs.
+    Reads the experimental config file to extract valid IDs, then for each CSV file in the provided directory,
+    identifies the animal (using the line containing 'Subject ID'), groups files by that animal, and merges them
+    in run order. Files with a Subject ID not found in the config file are skipped.
+
+    For each animal:
+      - If only one file exists, it is copied to the output directory.
+      - If multiple files exist, the earliest file (by modification time) is used as the base (keeping its header),
+        and for each subsequent file, the data rows (assumed to start at row 26) are appended. The function
+        optionally checks that the "INTERVAL" column is consecutive.
+
+    The merged (or copied) files are written to a new directory named "Aggregated_Runs" inside path_to_original_csv_files.
 
     Parameters:
-        experiment_config_file (str): Path to the experiment config CSV file.
-                                     The file is expected to have a header with at least
-                                     the columns 'ID' and 'GROUP_LABEL'.
-
-    Returns:
-        list: A list of unique IDs from the configuration file.
+        path_to_original_csv_files (str): Directory containing the original CSV files.
+        experiment_config_file (str): Path to the experimental config CSV file. This file must have an "ID" column.
     """
-    global experiment_ids
+    # Read the experimental configuration file to get valid IDs.
     try:
         config_df = pd.read_csv(experiment_config_file)
     except Exception as e:
         print(f"Error reading experiment config file: {e}")
-        return []
-
+        return
     if 'ID' not in config_df.columns:
         print("The config file does not contain an 'ID' column.")
-        return []
+        return
+    valid_ids = config_df['ID'].unique().tolist()
+    # Ensure comparison is consistent by converting IDs to strings.
+    valid_ids = [str(x) for x in valid_ids]
+    print(f"Valid experiment IDs from config: {valid_ids}")
 
-    # Extract unique IDs; depending on your file these may be ints or strings.
-    experiment_ids = config_df['ID'].unique().tolist()
-    print(experiment_ids)
-    return experiment_ids
-
-
-def merge_fragmented_runs_by_id(path_to_original_csv_files):
-    """
-    For each CSV file in the provided directory, identify the animal (using the line containing 'Subject ID'),
-    group files by that animal, and then merge them in run order. For each animal:
-
-      - If only one file exists, copy it to the output directory.
-      - If multiple files exist, choose the earliest file (based on file modification time) as the base file,
-        keeping its header. Then, for each subsequent file, extract only the data rows (assumed to start at row 26)
-        and (optionally) stop reading if the value in the INTERVAL column does not continue consecutively.
-
-    The merged (or copied) files are written to a new directory named "Aggregated_Runs" inside path_to_original_csv_files.
-    """
-
-    # Create an output directory for aggregated files
+    # Create output directory for aggregated files.
     output_dir = os.path.join(path_to_original_csv_files, "Aggregated_Runs")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Get a list of all CSV files in the directory
+    # List all CSV files in the provided directory.
     csv_files = glob.glob(os.path.join(path_to_original_csv_files, "*.csv"))
 
-    # Group files by Subject ID (extracted from the metadata line that contains "Subject ID")
+    # Group files by Subject ID extracted from the metadata line.
     files_by_id = {}
     for file_path in csv_files:
         try:
@@ -83,28 +71,31 @@ def merge_fragmented_runs_by_id(path_to_original_csv_files):
             print(f"Could not find Subject ID in {file_path}; skipping.")
             continue
 
+        # Only process file if subject_id is in the config.
+        if subject_id not in valid_ids:
+            print(f"Subject ID {subject_id} not in experiment config; skipping file {file_path}.")
+            continue
+
         files_by_id.setdefault(subject_id, []).append(file_path)
 
-    # Process each subject (animal) group
+    # Process each subject (animal) group.
     for subject_id, file_list in files_by_id.items():
-        # Sort files by modification time (as a proxy for run order)
+        # Sort files by modification time (as a proxy for run order).
         file_list.sort(key=lambda x: os.path.getmtime(x))
 
         if len(file_list) == 1:
-            # If only one file exists, simply copy it to the output directory.
+            # For a single file, simply copy it to the output directory.
             dest = os.path.join(output_dir, os.path.basename(file_list[0]))
             shutil.copy(file_list[0], dest)
             print(f"Copied single file for Subject ID {subject_id} to {dest}")
         else:
             print(f"Merging {len(file_list)} files for Subject ID {subject_id} ...")
-
-            # Use the earliest file as the base (keeping its header and full content)
+            # Use the earliest file as the base (keeping its header and full content).
             earliest_file = file_list[0]
             with open(earliest_file, 'r') as f:
                 aggregated_lines = f.readlines()
 
-            # --- Determine the column order from the base file's header ---
-            # (Search the header lines for one that contains "INTERVAL")
+            # Determine header: look for the line containing "INTERVAL".
             header_line_index = None
             header_columns = None
             for i, line in enumerate(aggregated_lines):
@@ -113,7 +104,8 @@ def merge_fragmented_runs_by_id(path_to_original_csv_files):
                     header_columns = line.strip().split(',')
                     break
             if header_line_index is None:
-                print(f"Warning: No header with 'INTERVAL' found in {earliest_file}. Will not do interval checking.")
+                print(
+                    f"Warning: No header with 'INTERVAL' found in {earliest_file}. Interval checking will be skipped.")
                 interval_col_index = None
             else:
                 try:
@@ -122,10 +114,10 @@ def merge_fragmented_runs_by_id(path_to_original_csv_files):
                     print(f"Warning: 'INTERVAL' column not found in header of {earliest_file}.")
                     interval_col_index = None
 
-            # For subsequent files, we assume that the data portion begins at row 26
-            HEADER_LINES_TO_SKIP = 25  # (i.e. skip the first 25 lines; row 26 is index 25)
+            # Assume that for subsequent files the data portion begins at row 26.
+            HEADER_LINES_TO_SKIP = 25
 
-            # Optionally, find the last interval from the base file (if available) to help check continuity
+            # Find the last interval value from the base file, if available.
             last_interval = None
             for line in reversed(aggregated_lines):
                 if not line.strip():
@@ -138,7 +130,7 @@ def merge_fragmented_runs_by_id(path_to_original_csv_files):
                     except ValueError:
                         continue
 
-            # Helper: process data rows from a file based on consecutive intervals.
+            # Helper function to extract data rows based on consecutive intervals.
             def extract_data_lines(lines, interval_index):
                 data_rows = []
                 file_last_interval = None
@@ -151,11 +143,9 @@ def merge_fragmented_runs_by_id(path_to_original_csv_files):
                     try:
                         current_interval = int(parts[interval_index])
                     except ValueError:
-                        # If we can’t convert the interval to an int, assume it’s not a data row.
+                        # Not a valid data row.
                         continue
                     if file_last_interval is None:
-                        # For the very first data row of this file, we accept it (even if it does not
-                        # continue from the previous file’s last interval—sometimes the run restarts).
                         data_rows.append(line)
                         file_last_interval = current_interval
                     else:
@@ -167,7 +157,7 @@ def merge_fragmented_runs_by_id(path_to_original_csv_files):
                             break
                 return data_rows, file_last_interval
 
-            # Process every subsequent file and append its data rows
+            # Process each subsequent file and append its data rows.
             for file_path in file_list[1:]:
                 with open(file_path, 'r') as f:
                     lines = f.readlines()
@@ -175,31 +165,26 @@ def merge_fragmented_runs_by_id(path_to_original_csv_files):
                     print(f"File {file_path} does not have enough lines to contain data; skipping.")
                     continue
 
-                # Grab all lines after the first 25 (i.e. starting at row 26)
+                # Extract candidate data rows from after the header (assumed to start at row 26).
                 candidate_data = lines[HEADER_LINES_TO_SKIP:]
 
                 if interval_col_index is not None:
                     filtered_data, file_last_interval = extract_data_lines(candidate_data, interval_col_index)
-                    # (If desired, one might check whether the first row of this file is the expected continuation.)
                     if last_interval is not None and filtered_data:
                         try:
                             first_interval = int(filtered_data[0].strip().split(',')[interval_col_index])
                             if first_interval != last_interval + 1:
-                                # Here you could decide to adjust the intervals or simply note a discontinuity.
-                                # For now, we simply print a warning.
                                 print(
-                                    f"Warning: For file {file_path}, first interval ({first_interval}) does not continue from previous last interval ({last_interval}).")
+                                    f"Warning: In file {file_path}, first interval ({first_interval}) does not continue from previous last interval ({last_interval}).")
                         except ValueError:
                             pass
-                    # Update last_interval (if any data was found)
                     if file_last_interval is not None:
                         last_interval = file_last_interval
                     aggregated_lines.extend(filtered_data)
                 else:
-                    # If we couldn’t identify the INTERVAL column, simply append all candidate data lines.
                     aggregated_lines.extend(candidate_data)
 
-            # Write the aggregated output to a new file
+            # Write the merged content to the output file.
             out_filename = os.path.join(output_dir, f"Aggregated_ID{subject_id}.csv")
             with open(out_filename, 'w') as f:
                 f.writelines(aggregated_lines)
