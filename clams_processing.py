@@ -147,7 +147,8 @@ def trim_all_clams_data(directory_path, trim_hours, keep_hours, start_dark):
         os.makedirs(trimmed_directory)
 
     # Get the path to the cleaned data files
-    qc_directory = os.path.join(directory_path, "QC_Filtered")
+    # qc_directory = os.path.join(directory_path, "QC_Filtered")
+    qc_directory = os.path.join(directory_path, "Cleaned_CLAMS_data")
 
     # List all files in the directory
     files = [f for f in os.listdir(qc_directory) if
