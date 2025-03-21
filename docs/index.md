@@ -4,7 +4,7 @@ layout: home
 nav_order: 1
 ---
 
-![](/../../assets/logo.png)
+![](logo.png)
 
 # CLAMS Wrangler
 
