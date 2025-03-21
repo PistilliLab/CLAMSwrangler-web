@@ -17,8 +17,7 @@ def process_files_task(upload_id, trim_hours, keep_hours, bin_hours, start_cycle
         # the views.upload_csv_files function renames it to experiment_config.csv
         experiment_config_file = os.path.join(experiment_config_path, 'experiment_config.csv')
 
-        # merge_fragmented_runs_by_id(upload_dir, experiment_config_file)
-
+        # pre-processing of CLAMS data
         clean_all_clams_data(upload_dir)
         quality_control(upload_dir)
         trim_all_clams_data(upload_dir, trim_hours, keep_hours, start_cycle)
@@ -29,12 +28,12 @@ def process_files_task(upload_id, trim_hours, keep_hours, bin_hours, start_cycle
             recombine_columns(upload_dir, experiment_config_file, bin_hour)
             reformat_csvs_in_directory(os.path.join(upload_dir, f'{bin_hour}hour_bins_Combined_CLAMS_data'))
 
-        # Zip the processed files
+        # Zip the processed files to deliver to user
         zip_file_path = os.path.join(settings.MEDIA_ROOT, f'{upload_id}.zip')
         zip_directory(upload_dir, zip_file_path)
 
         return {'upload_id': upload_id}
     except Exception as e:
-        # Log the exception (optional)
+        # Log any exceptions
         print(f"Error processing files: {e}")
         return {'error': str(e)}
