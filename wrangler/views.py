@@ -13,6 +13,9 @@ from celery.result import AsyncResult
 
 
 def homepage_view(request):
+    return render(request, 'home.html')
+
+def process_view(request):
     # version = str(get_latest_version())
     if request.method == 'POST':
         form = UserInputForm(request.POST, request.FILES)
@@ -35,10 +38,10 @@ def homepage_view(request):
             # Redirect to the processing page with the task ID
             return redirect('processing', task_id=task.id)
         else:
-            return render(request, 'home.html', {'form': form})
+            return render(request, 'process.html', {'form': form})
     else:
         form = UserInputForm()
-        return render(request, 'home.html', {'form': form})
+        return render(request, 'process.html', {'form': form})
 
 
 def processing_view(request, task_id):

@@ -3,12 +3,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from .views import (
     homepage_view, upload_csv_files, download_zip_file, check_zip_exists, download_config_template, clear_session,
-    task_status, processing_view, download_view
+    task_status, processing_view, download_view, process_view
 )
 
 
 urlpatterns = [
     path('', homepage_view, name='home'),
+    path('process/', process_view, name='process'),
     path('upload/', upload_csv_files, name='upload_csv_files'),
     path('download/<str:upload_id>/', download_view, name='download'),
     path('download-file/<str:upload_id>/', download_zip_file, name='download_zip_file'),
