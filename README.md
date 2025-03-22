@@ -1,7 +1,7 @@
-![GitHub release (with filter)](https://img.shields.io/github/v/release/90-Seconds-to-Midnight/CLAMSwrangler)
+![GitHub release (with filter)](https://img.shields.io/github/v/release/PistilliLab/CLAMSwrangler-web)
 ![Static Badge](https://img.shields.io/badge/maintained%3F-yes-Green)
-![GitHub issues](https://img.shields.io/github/issues/90-Seconds-to-Midnight/CLAMSwrangler) 
-![GitHub](https://img.shields.io/github/license/90-Seconds-to-Midnight/CLAMSwrangler)
+![GitHub issues](https://img.shields.io/github/issues/PistilliLab/CLAMSwrangler-web) 
+![GitHub](https://img.shields.io/github/license/PistilliLab/CLAMSwrangler-web)
 
 
 # CLAMSwrangler-web
