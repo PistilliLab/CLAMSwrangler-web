@@ -18,26 +18,22 @@ env = Env()
 env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Three parents are necessary since settings are in a subdirectory.
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env.str('DEV_SECRET_KEY')
+SECRET_KEY = None
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-
-# SESSION_COOKIE_SECURE = True
-# SECURE_SSL_REDIRECT = True
-# CSRF_COOKIE_SECURE = True
+ALLOWED_HOSTS = []
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -167,9 +163,3 @@ LOGGING = {
     },
     'root': {'level': 'INFO'},
 }
-
-# Overrides production settings if DJANGO_DEVELOPMENT env variable is true
-# export DJANGO_DEVELOPMENT=true
-# keep this at end of file
-if os.environ.get('DJANGO_DEVELOPMENT'):
-    from .dev_settings import *  # import error without .
