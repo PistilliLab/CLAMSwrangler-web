@@ -1,3 +1,13 @@
 body {
     color: #ffffff;
 }
+
+.custom-bg {
+    background-color: #044368FF;
+}
+.custom-nav {
+    background-color: #002e44;
+}
+.custom-footer {
+    background-color: #002e44;
+}
