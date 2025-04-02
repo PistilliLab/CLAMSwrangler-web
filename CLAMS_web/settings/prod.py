@@ -14,7 +14,7 @@ SECRET_KEY = env.str('PROD_SECRET_KEY')
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['clams.stuartclayton.me', '127.0.0.1']
+ALLOWED_HOSTS = env.str('PROD_ALLOWED_HOSTS')
 
 SESSION_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
