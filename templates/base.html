@@ -20,19 +20,22 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.0/themes/smoothness/jquery-ui.css">
+    
+    <style>
+      .custom-bg {
+        background-color: #044368FF;
+      }
+      .custom-nav {
+        background-color: #002e44;
+      }
+      .custom-footer {
+        background-color: #002e44;
+      }
+    </style>
+    
 </head>
 
-<style>
-  .custom-bg {
-    background-color: #044368FF;
-  }
-  .custom-nav {
-    background-color: #002e44;
-  }
-  .custom-footer {
-    background-color: #002e44;
-  }
-</style>
+
 
 <body class="custom-bg d-flex flex-column min-vh-100">
 
@@ -43,7 +46,7 @@
             <div class="row flex-grow-1">
 
                 <!-- Left Section for Documentation and About -->
-                <div class="col-md-4 d-flex">
+                <div class="col-md-4 d-flex justify-content-left">
                     <ul class="navbar-nav flex-row">
                         <li class="nav-item">
                             <a class="nav-link" style="color:#ffffff" href="{% url 'home' %}">Home</a>

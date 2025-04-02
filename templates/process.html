@@ -6,104 +6,110 @@
 {% block content %}
     
 <div class="container-lg">
+    
     <!-- Experimental Configuration File form-->
-    <div class="container-md my-4">
-    <h3>1.) Experimental configuration</h3>
-    <!-- button to download the experimental configuration file template -->
-    <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'download_config_template' %}'">Download Config Template</button>
-    <p></p>
-    <p>Download the configuration file template from above. The file contains two columns: <b>ID</b> and <b>GROUP_LABEL</b>.</p>
-    <p>For each row, enter a subject ID and their corresponding group label. E.g. 1001, Control; 1005, Treated.</p>
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div id="file-droppable1" class="drag-drop-area" onclick="document.getElementById('fileElem1').click();">
-                <form class="my-form">
-                    <p>Upload the filled out experimental configuration file.</p>
-                    <p>Click or drag-and-drop to select file.</p>
-                    <input type="file" id="fileElem1" accept=".csv" onchange="handleFiles(this.files, '1')" style="display: none;">
-                    <label class="button" for="fileElem1">Select config file.</label>
-                    <div id="gallery1"></div>
-                </form>
-                <div id="file-list1"></div>
-                <button type="button" onclick="clearFiles(event, '1')">Clear Files</button>
-                <button type="button" onclick="uploadFiles(event, '1')">Upload Files</button>
-            </div>
+    <div class="row my-4">
+        <div class="col-12">
+        <h3>1.) Experimental configuration</h3>
+        <!-- button to download the experimental configuration file template -->
+        <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'download_config_template' %}'">Download Config Template</button>
+        <p></p>
+        <p>Download the configuration file template from above. The file contains two columns: <b>ID</b> and <b>GROUP_LABEL</b>.</p>
+        <p>For each row, enter a subject ID and their corresponding group label. E.g. 1001, Control; 1005, Treated.</p>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div id="file-droppable1" class="drag-drop-area" onclick="document.getElementById('fileElem1').click();">
+                    <form class="my-form">
+                        <p>Upload the filled out experimental configuration file.</p>
+                        <p>Click or drag-and-drop to select file.</p>
+                        <input type="file" id="fileElem1" accept=".csv" onchange="handleFiles(this.files, '1')" style="display: none;">
+                        <label class="button" for="fileElem1">Select config file.</label>
+                        <div id="gallery1"></div>
+                    </form>
+                    <div id="file-list1"></div>
+                    <button type="button" onclick="clearFiles(event, '1')">Clear Files</button>
+                    <button type="button" onclick="uploadFiles(event, '1')">Upload Files</button>
+                </div>
         </div>
     </div>
     
     <!-- CLAMS Data File form-->
-    <div class="container-md my-4">
-    <h3>2.) Upload CLAMS data files</h3>
-    <p>The CLAMS files must be in the exported .csv format, not the original format as this software is not designed to handle them.</p>
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div id="file-droppable2" class="drag-drop-area" onclick="document.getElementById('fileElem2').click();">
-                <form class="config-form">
-                    <p>Upload multiple .csv files from CLAMS.</p>
-                    <p>Click or drag-and-drop to select files.</p>
-                    <input type="file" id="fileElem2" multiple accept=".csv" onchange="handleFiles(this.files, '2')" style="display: none;">
-                    <label class="button" for="fileElem2">Select raw file(s).</label>
-                    <div id="gallery2"></div>
-                </form>
-                <div id="file-list2"></div>
-                <button type="button" onclick="clearFiles(event, '2')">Clear Files</button>
-                <button type="button" onclick="uploadFiles(event, '2')">Upload Files</button>
+    <div class="row my-4">
+        <div class="col-12">
+        <h3>2.) Upload CLAMS data files</h3>
+        <p>The CLAMS files must be in the exported .csv format, not the original format as this software is not designed to handle them.</p>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div id="file-droppable2" class="drag-drop-area" onclick="document.getElementById('fileElem2').click();">
+                    <form class="config-form">
+                        <p>Upload multiple .csv files from CLAMS.</p>
+                        <p>Click or drag-and-drop to select files.</p>
+                        <input type="file" id="fileElem2" multiple accept=".csv" onchange="handleFiles(this.files, '2')" style="display: none;">
+                        <label class="button" for="fileElem2">Select raw file(s).</label>
+                        <div id="gallery2"></div>
+                    </form>
+                    <div id="file-list2"></div>
+                    <button type="button" onclick="clearFiles(event, '2')">Clear Files</button>
+                    <button type="button" onclick="uploadFiles(event, '2')">Upload Files</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Processing form-->
-    <div class="container-md my-4">
-        <h3>3.) Specify processing settings</h3>
-        <p>Data can be processed with a range of settings to allow for the most flexibility in downstream analyses.</p>
-        <p>For more information on the settings, refer to the <a href="https://pistillilab.github.io/CLAMSwrangler-web/">documentation.</a></p>
-        <ol>
-            <li>Trim hours: the number of hours to trim from the beginning of the data.</li>
-            <li>Keep hours: the number of hours to keep (e.g., 96 hours of data). This value should not exceed the duration of your shortest data collection window.</li>
-            <li>Bin hours: how the data will be averaged into bins. For example, data can be averaged hourly for each animal or for a 24 hour period.</li>
-            <li>Start cycle: define whether you want the data cleaning to start at the light or dark cycle of the CLAMS experiment.</li>
-        </ol>
-        <form id="uploadForm" method="post" enctype="multipart/form-data" class="text-center dropzone">
-            {% csrf_token %}
-            <div class="row">
-                <div class="col-md-3 my-4">
-                    <div class="form-group">
-                        <label for="{{ form.trim_hours.id_for_label }}">{{ form.trim_hours.label }}</label>
-                        {{ form.trim_hours }}
+    <div class="row my-4">
+        <div class="col-12">
+            <h3>3.) Specify processing settings</h3>
+            <p>Data can be processed with a range of settings to allow for the most flexibility in downstream analyses.</p>
+            <p>For more information on the settings, refer to the <a href="https://pistillilab.github.io/CLAMSwrangler-web/">documentation.</a></p>
+            <ol>
+                <li>Trim hours: the number of hours to trim from the beginning of the data.</li>
+                <li>Keep hours: the number of hours to keep (e.g., 96 hours of data). This value should not exceed the duration of your shortest data collection window.</li>
+                <li>Bin hours: how the data will be averaged into bins. For example, data can be averaged hourly for each animal or for a 24 hour period.</li>
+                <li>Start cycle: define whether you want the data cleaning to start at the light or dark cycle of the CLAMS experiment.</li>
+            </ol>
+            <form id="uploadForm" method="post" enctype="multipart/form-data" class="text-center dropzone">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-3 my-4">
+                        <div class="form-group">
+                            <label for="{{ form.trim_hours.id_for_label }}">{{ form.trim_hours.label }}</label>
+                            {{ form.trim_hours }}
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-3 my-4">
-                    <div class="form-group">
-                        <label for="{{ form.keep_hours.id_for_label }}">{{ form.keep_hours.label }}</label>
-                        {{ form.keep_hours }}
+                    <div class="col-md-3 my-4">
+                        <div class="form-group">
+                            <label for="{{ form.keep_hours.id_for_label }}">{{ form.keep_hours.label }}</label>
+                            {{ form.keep_hours }}
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-3 my-4">
-                    <div class="form-group">
-                        <label>{{ form.bin_hours.label }}</label>
-                        <div>
-                            {% for choice in form.bin_hours %}
-                                <div class="form-check form-check-inline">
-                                    {{ choice.tag }}
-                                    <label class="form-check-label" for="{{ choice.id_for_label }}">
-                                        {{ choice.choice_label }}
-                                    </label>
-                                </div>
-                            {% endfor %}
+                    <div class="col-md-3 my-4">
+                        <div class="form-group">
+                            <label>{{ form.bin_hours.label }}</label>
+                            <div>
+                                {% for choice in form.bin_hours %}
+                                    <div class="form-check form-check-inline">
+                                        {{ choice.tag }}
+                                        <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                            {{ choice.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 my-4">
+                        <div class="form-group">
+                            <label for="{{ form.start_cycle.id_for_label }}">{{ form.start_cycle.label }}</label>
+                            <br>
+                            {{ form.start_cycle }}
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 my-4">
-                    <div class="form-group">
-                        <label for="{{ form.start_cycle.id_for_label }}">{{ form.start_cycle.label }}</label>
-                        <br>
-                        {{ form.start_cycle }}
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <button type="button" class="btn btn-danger" id="clearSessionBtn">Clear Session</button>
-        </form>
+                <button type="submit" class="btn btn-primary">Submit</button>
+                <button type="button" class="btn btn-danger" id="clearSessionBtn">Clear Session</button>
+            </form>
+        </div>
     </div>
 </div>
     
@@ -293,9 +299,9 @@
 <!-- Styling, fixes section alignment -->
 <style>
     /* Ensure consistent margins for all sections */
-    .container-md {
-        margin-left: 0 !important;
-        padding-left: 0 !important;
+    #uploadForm .container-md {
+        margin-left: 0;
+        padding-left: 0;
     }
 
     /* Adjust margin and padding for headers */
@@ -305,7 +311,7 @@
     }
 
     /* Optional: Align buttons and forms consistently */
-    .row, .form-group {
+    #uploadForm .row, #uploadForm .form-group {
         margin-left: 0;
         padding-left: 0;
     }
