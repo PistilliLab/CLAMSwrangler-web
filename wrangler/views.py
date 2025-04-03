@@ -5,7 +5,7 @@ from wsgiref.util import FileWrapper
 
 from celery.result import AsyncResult
 from django.conf import settings
-from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, HttpResponseForbidden, FileResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, HttpResponseForbidden, FileResponse, Http404
 from django.shortcuts import render, redirect
 
 from .forms import UserInputForm
