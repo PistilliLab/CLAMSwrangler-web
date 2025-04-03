@@ -1,15 +1,15 @@
 import os
-import uuid
 import shutil
-from django.conf import settings
-from django.shortcuts import render, redirect
-from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, HttpResponseForbidden, FileResponse
-from django.urls import reverse
-from django.views.decorators.csrf import csrf_exempt
+import uuid
 from wsgiref.util import FileWrapper
+
+from celery.result import AsyncResult
+from django.conf import settings
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, HttpResponseForbidden, FileResponse
+from django.shortcuts import render, redirect
+
 from .forms import UserInputForm
 from .tasks import process_files_task
-from celery.result import AsyncResult
 
 
 def homepage_view(request):
@@ -154,7 +154,7 @@ def download_config_template(request):
     """
 
     # Path to the experiment configuration file
-    config_file = os.path.join(settings.MEDIA_ROOT, 'templates', 'experiment_config.csv')
+    config_file = os.path.join(settings.STATIC_ROOT, 'templates', 'experiment_config.csv')
 
     if os.path.exists(config_file):
         with open(config_file, 'rb') as fh:

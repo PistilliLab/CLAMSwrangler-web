@@ -1,7 +1,6 @@
 import glob
 import os
 import re
-import shutil
 from datetime import timedelta
 
 import numpy as np

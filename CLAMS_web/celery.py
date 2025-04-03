@@ -3,7 +3,8 @@ import os
 from celery import Celery
 
 # Set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'CLAMS_web.settings')
+# Change between 'CLAMS_web.settings.dev' or 'CLAMS_web.settings.prod' depending on environment
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'CLAMS_web.settings.dev')
 
 app = Celery('CLAMS_web')
 
