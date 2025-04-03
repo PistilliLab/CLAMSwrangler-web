@@ -123,13 +123,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [str(BASE_DIR.joinpath('staticfiles'))]
-STATIC_ROOT = str(BASE_DIR.joinpath('static'))
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [str(BASE_DIR.joinpath('static'))]
+STATIC_ROOT = str(BASE_DIR.joinpath('staticfiles'))
 
 # Media files (user uploaded)
 MEDIA_ROOT = str(BASE_DIR.joinpath('media'))
-MEDIA_URL = '/media/'
+MEDIA_URL = 'media/'
 
 # Celery settings
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the message broker

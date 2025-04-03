@@ -19,4 +19,4 @@ urlpatterns = [
     path('task-status/<str:task_id>/', task_status, name='task_status'),
     path('processing/<str:task_id>/', processing_view, name='processing'),
     path('privacy-policy', privacy_policy_view, name='privacy_policy'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
