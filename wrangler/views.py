@@ -172,3 +172,7 @@ def clear_session(request):
     request.session.flush()  # Clear all session data
 
     return JsonResponse({'message': 'Session cleared successfully'})
+
+
+def privacy_policy_view(request):
+    return render(request, 'privacy-policy.html')

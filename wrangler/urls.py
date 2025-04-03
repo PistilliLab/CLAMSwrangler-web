@@ -4,7 +4,7 @@ from django.urls import path
 
 from .views import (
     homepage_view, upload_csv_files, download_zip_file, check_zip_exists, download_config_template, clear_session,
-    task_status, processing_view, download_view, process_view
+    task_status, processing_view, download_view, process_view, privacy_policy_view
 )
 
 urlpatterns = [
@@ -18,4 +18,5 @@ urlpatterns = [
     path('clear-session/', clear_session, name='clear_session'),
     path('task-status/<str:task_id>/', task_status, name='task_status'),
     path('processing/<str:task_id>/', processing_view, name='processing'),
+    path('privacy-policy', privacy_policy_view, name='privacy_policy'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
