@@ -1,9 +1,11 @@
 import os
+
 from celery import shared_task
 from django.conf import settings
+
 from clams_processing import (
     clean_all_clams_data, trim_all_clams_data, process_directory,
-    recombine_columns, reformat_csvs_in_directory, quality_control
+    recombine_columns, reformat_csvs_in_directory
 )
 from helpers import zip_directory
 

@@ -1,11 +1,11 @@
-from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.urls import path
+
 from .views import (
     homepage_view, upload_csv_files, download_zip_file, check_zip_exists, download_config_template, clear_session,
     task_status, processing_view, download_view, process_view
 )
-
 
 urlpatterns = [
     path('', homepage_view, name='home'),
